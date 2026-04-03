@@ -46,6 +46,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val isRunning by lazy { MutableLiveData<Boolean>() }
     val updateListAction by lazy { MutableLiveData<Int>() }
     val updateTestResultAction by lazy { MutableLiveData<String>() }
+    val liteTestFinished = MutableLiveData<Boolean>()
     private val tcpingTestScope by lazy { CoroutineScope(Dispatchers.IO) }
 
     /**
@@ -430,12 +431,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 removeInvalidServer()
             }
 
-            if (MmkvManager.decodeSettingsBool(AppConfig.PREF_AUTO_SORT_AFTER_TEST)) {
+            if (MmkvManager.decodeSettingsBool(AppConfig.PREF_AUTO_SORT_AFTER_TEST, true)) {
                 sortByTestResults()
             }
 
             withContext(Dispatchers.Main) {
                 reloadServerList()
+                liteTestFinished.value = true
+                liteTestFinished.value = false
             }
         }
     }

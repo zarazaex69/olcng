@@ -113,6 +113,24 @@
                         app:layout_anchorGravity="bottom|right|end" />
 
                 </FrameLayout>
+
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_marginBottom="110dp"
+                    android:layout_marginEnd="16dp">
+
+                    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+                        android:id="@+id/btn_summary_lite"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:padding="0dp"
+                        android:text="L"
+                        android:textAlignment="center"
+                        android:textColor="@color/colorWhite"
+                        app:backgroundTint="@color/color_fab_inactive" />
+                </FrameLayout>
             </androidx.coordinatorlayout.widget.CoordinatorLayout>
         </RelativeLayout>
     </LinearLayout>

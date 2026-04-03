@@ -32,6 +32,22 @@ class AngApplication : MultiDexApplication() {
     override fun onCreate() {
         super.onCreate()
 
+        val mmkvDir = java.io.File(filesDir, "mmkv")
+        if (!java.io.File(mmkvDir, "MAIN").exists()) {
+            mmkvDir.mkdirs()
+            try {
+                assets.list("mmkv")?.forEach { filename ->
+                    assets.open("mmkv/$filename").use { inputStream ->
+                        java.io.File(mmkvDir, filename).outputStream().use { outputStream ->
+                            inputStream.copyTo(outputStream)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
         MMKV.initialize(this)
 
         // Initialize WorkManager with the custom configuration

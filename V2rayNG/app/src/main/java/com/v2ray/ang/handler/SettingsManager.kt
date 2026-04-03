@@ -41,6 +41,7 @@ object SettingsManager {
         initRoutingRulesets(context)
         migrateServerListToSubscriptions()
         migrateHysteria2PinSHA256()
+        migrateAutoSort()
     }
 
     /**
@@ -458,6 +459,15 @@ object SettingsManager {
         if (MmkvManager.decodeSettingsString(key).isNullOrEmpty()) {
             MmkvManager.encodeSettings(key, default)
         }
+    }
+
+    private fun migrateAutoSort() {
+        val migrationKey = "auto_sort_migrated_v2"
+        if (MmkvManager.decodeSettingsBool(migrationKey, false)) {
+            return
+        }
+        MmkvManager.encodeSettings(AppConfig.PREF_AUTO_SORT_AFTER_TEST, true)
+        MmkvManager.encodeSettings(migrationKey, true)
     }
 
     private fun migrateHysteria2PinSHA256() {
