@@ -32,8 +32,11 @@ fi
 
 echo "Building AndroidLibXrayLite (libv2ray.aar)..."
 pushd "$__dir/AndroidLibXrayLite" >/dev/null
+mkdir -p assets data
+bash gen_assets.sh download
+cp -v data/*.dat assets/
 go mod tidy
-gomobile bind -v -androidapi 21 -ldflags='-s -w' -o libv2ray.aar ./
+gomobile bind -v -androidapi 24 -trimpath -ldflags='-s -w -buildid=' -o libv2ray.aar ./
 popd >/dev/null
 
 echo "Building hev-socks5-tunnel..."
