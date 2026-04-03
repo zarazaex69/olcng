@@ -82,8 +82,31 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         binding.drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
         binding.navView.setNavigationItemSelectedListener(this)
-        findViewById<android.widget.TextView>(R.id.tv_forked)?.movementMethod = android.text.method.LinkMovementMethod.getInstance()
-        findViewById<android.widget.TextView>(R.id.tv_developed)?.movementMethod = android.text.method.LinkMovementMethod.getInstance()
+        fun removeUnderlines(textView: android.widget.TextView?) {
+            if (textView == null) return
+            textView.movementMethod = android.text.method.LinkMovementMethod.getInstance()
+            val text = textView.text
+            if (text is android.text.Spanned) {
+                val spannable = android.text.SpannableStringBuilder(text)
+                val spans = spannable.getSpans(0, spannable.length, android.text.style.URLSpan::class.java)
+                for (span in spans) {
+                    val start = spannable.getSpanStart(span)
+                    val end = spannable.getSpanEnd(span)
+                    val flags = spannable.getSpanFlags(span)
+                    val url = span.url
+                    spannable.removeSpan(span)
+                    spannable.setSpan(object : android.text.style.URLSpan(url) {
+                        override fun updateDrawState(ds: android.text.TextPaint) {
+                            super.updateDrawState(ds)
+                            ds.isUnderlineText = false
+                        }
+                    }, start, end, flags)
+                }
+                textView.text = spannable
+            }
+        }
+        removeUnderlines(findViewById(R.id.tv_forked))
+        removeUnderlines(findViewById(R.id.tv_developed))
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {

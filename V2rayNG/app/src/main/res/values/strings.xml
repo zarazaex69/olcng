@@ -8,7 +8,7 @@
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="migration_success">Data migration success!</string>
     <string name="drawer_forked_text">forked from <a href="https://github.com/2dust/v2rayng">V2RayNG</a></string>
-    <string name="drawer_developed_text">developed by developers from <a href="https://t.me/openlibrecommunity">openlibrecommunity</a></string>
+    <string name="drawer_developed_text">developed by developers from <a href="https://t.me/openlibrecommunity">Olc</a></string>
     <string name="action_stop_service">Stop service</string>
     <string name="migration_fail">Data migration failed!</string>
     <string name="pull_down_to_refresh">Please pull down to refresh!</string>

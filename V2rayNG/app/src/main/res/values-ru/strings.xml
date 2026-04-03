@@ -7,7 +7,7 @@
     <string name="navigation_drawer_close">Закрыть панель навигации</string>
     <string name="migration_success">Успешный перенос данных!</string>
     <string name="drawer_forked_text">forked from <a href="https://github.com/2dust/v2rayng">V2RayNG</a></string>
-    <string name="drawer_developed_text">developed by developers from <a href="https://t.me/openlibrecommunity">openlibrecommunity</a></string>
+    <string name="drawer_developed_text">developed by developers from <a href="https://t.me/openlibrecommunity">Olc</a></string>
     <string name="action_stop_service">Остановить службу</string>
     <string name="migration_fail">Перенос данных не выполнен!</string>
     <string name="pull_down_to_refresh">Потяните вниз для обновления!</string>
