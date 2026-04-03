@@ -21,8 +21,6 @@ import com.v2ray.ang.dto.SubscriptionUpdateResult
 import com.v2ray.ang.dto.TestServiceMessage
 import com.v2ray.ang.extension.matchesPattern
 import com.v2ray.ang.extension.serializable
-import com.v2ray.ang.extension.toastError
-import com.v2ray.ang.extension.toastSuccess
 import com.v2ray.ang.handler.AngConfigManager
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsManager
@@ -455,12 +453,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 AppConfig.MSG_STATE_START_SUCCESS -> {
-                    getApplication<AngApplication>().toastSuccess(R.string.toast_services_success)
                     isRunning.value = true
                 }
 
                 AppConfig.MSG_STATE_START_FAILURE -> {
-                    getApplication<AngApplication>().toastError(R.string.toast_services_failure)
                     isRunning.value = false
                 }
 
