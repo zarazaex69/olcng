@@ -1,1 +1,1 @@
-A V2Ray client for Android, support Xray core and v2fly core
+A VPN for Android, byppas DPI, BLACK, WHITE LIST
