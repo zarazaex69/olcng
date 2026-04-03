@@ -94,7 +94,7 @@ class MainRecyclerAdapter(
      * @return Formatted address string
      */
     private fun getAddress(profile: ProfileItem): String {
-        return profile.description.nullIfBlank() ?: AngConfigManager.generateDescription(profile)
+        return AngConfigManager.generateDescription(profile)
     }
 
     /**
