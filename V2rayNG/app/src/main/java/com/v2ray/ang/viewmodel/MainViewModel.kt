@@ -459,23 +459,44 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 sortByTestResultsForSub(guid)
             }
         } else if (subscriptionId.startsWith("group_")) {
-            val allSubs = MmkvManager.decodeSubscriptions()
-            val groupSubs = when (subscriptionId) {
-                "group_white" -> allSubs.filter { 
-                    it.subscription.remarks.startsWith("БЕЛЫЕ", ignoreCase = true) || 
-                    it.subscription.remarks.startsWith("WHITE", ignoreCase = true)
-                }
-                "group_black" -> allSubs.filter { 
-                    it.subscription.remarks.startsWith("ЧЕРНЫЕ", ignoreCase = true) || 
-                    it.subscription.remarks.startsWith("BLACK", ignoreCase = true)
-                }
-                else -> emptyList()
-            }
-            groupSubs.forEach { sub ->
-                sortByTestResultsForSub(sub.guid)
-            }
+            sortByTestResultsForGroup(subscriptionId)
         } else {
             sortByTestResultsForSub(subscriptionId)
+        }
+    }
+
+    private fun sortByTestResultsForGroup(groupId: String) {
+        data class ServerDelay(var guid: String, var testDelayMillis: Long, var subId: String)
+
+        val allSubs = MmkvManager.decodeSubscriptions()
+        val groupSubs = when (groupId) {
+            "group_white" -> allSubs.filter { 
+                it.subscription.remarks.startsWith("БЕЛЫЕ", ignoreCase = true) || 
+                it.subscription.remarks.startsWith("WHITE", ignoreCase = true)
+            }
+            "group_black" -> allSubs.filter { 
+                it.subscription.remarks.startsWith("ЧЕРНЫЕ", ignoreCase = true) || 
+                it.subscription.remarks.startsWith("BLACK", ignoreCase = true)
+            }
+            else -> emptyList()
+        }
+
+        val allServerDelays = mutableListOf<ServerDelay>()
+        
+        groupSubs.forEach { sub ->
+            val serverList = MmkvManager.decodeServerList(sub.guid)
+            serverList.forEach { guid ->
+                val delay = MmkvManager.decodeServerAffiliationInfo(guid)?.testDelayMillis ?: 0L
+                allServerDelays.add(ServerDelay(guid, if (delay <= 0L) 999999 else delay, sub.guid))
+            }
+        }
+        
+        allServerDelays.sortBy { it.testDelayMillis }
+        
+        val serversBySubId = allServerDelays.groupBy { it.subId }
+        serversBySubId.forEach { (subId, servers) ->
+            val sortedList = servers.map { it.guid }.toMutableList()
+            MmkvManager.encodeServerList(sortedList, subId)
         }
     }
 
