@@ -45,6 +45,8 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         ActivityMainBinding.inflate(layoutInflater)
     }
     private var isLiteTesting = false
+    private var easterEggClickCount = 0
+    private var isEasterEggActive = false
 
     val mainViewModel: MainViewModel by viewModels()
     private lateinit var groupPagerAdapter: GroupPagerAdapter
@@ -117,6 +119,14 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         }
         removeUnderlines(findViewById(R.id.tv_forked))
         removeUnderlines(findViewById(R.id.tv_developed))
+        
+        findViewById<android.widget.TextView>(R.id.tv_developed)?.setOnClickListener {
+            easterEggClickCount++
+            if (easterEggClickCount >= 16) {
+                activateEasterEgg()
+            }
+        }
+        
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
@@ -612,5 +622,50 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     override fun onDestroy() {
         tabMediator?.detach()
         super.onDestroy()
+    }
+    
+    private fun activateEasterEgg() {
+        if (isEasterEggActive) return
+        isEasterEggActive = true
+        
+        lifecycleScope.launch {
+            val colors = listOf(
+                0xFFFF0000.toInt(),
+                0xFFFF7F00.toInt(),
+                0xFFFFFF00.toInt(),
+                0xFF00FF00.toInt(),
+                0xFF0000FF.toInt(),
+                0xFF4B0082.toInt(),
+                0xFF9400D3.toInt()
+            )
+            
+            var colorIndex = 0
+            while (isEasterEggActive) {
+                binding.toolbar.setBackgroundColor(colors[colorIndex])
+                binding.tabGroup.setBackgroundColor(colors[(colorIndex + 1) % colors.size])
+                binding.fab.backgroundTintList = android.content.res.ColorStateList.valueOf(colors[(colorIndex + 2) % colors.size])
+                binding.btnSummaryLite.backgroundTintList = android.content.res.ColorStateList.valueOf(colors[(colorIndex + 3) % colors.size])
+                
+                colorIndex = (colorIndex + 1) % colors.size
+                delay(200)
+            }
+        }
+        
+        replaceAllTextWith67(binding.root)
+    }
+    
+    private fun replaceAllTextWith67(view: android.view.View) {
+        when (view) {
+            is android.widget.TextView -> {
+                if (view.text.isNotEmpty()) {
+                    view.text = "67"
+                }
+            }
+            is android.view.ViewGroup -> {
+                for (i in 0 until view.childCount) {
+                    replaceAllTextWith67(view.getChildAt(i))
+                }
+            }
+        }
     }
 }
