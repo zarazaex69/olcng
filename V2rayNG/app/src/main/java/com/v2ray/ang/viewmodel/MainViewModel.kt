@@ -75,6 +75,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun reloadServerList() {
         serverList = if (subscriptionId.isEmpty()) {
             MmkvManager.decodeAllServerList()
+        } else if (subscriptionId.startsWith("group_")) {
+            val allSubs = MmkvManager.decodeSubscriptions()
+            val groupSubs = when (subscriptionId) {
+                "group_white" -> allSubs.filter { 
+                    it.subscription.remarks.startsWith("БЕЛЫЕ", ignoreCase = true) || 
+                    it.subscription.remarks.startsWith("WHITE", ignoreCase = true)
+                }
+                "group_black" -> allSubs.filter { 
+                    it.subscription.remarks.startsWith("ЧЕРНЫЕ", ignoreCase = true) || 
+                    it.subscription.remarks.startsWith("BLACK", ignoreCase = true)
+                }
+                else -> emptyList()
+            }
+            val combined = mutableListOf<String>()
+            groupSubs.forEach { sub ->
+                combined.addAll(MmkvManager.decodeServerList(sub.guid))
+            }
+            combined
         } else {
             MmkvManager.decodeServerList(subscriptionId)
         }
@@ -102,7 +120,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      * @param toPosition The target position of the server.
      */
     fun swapServer(fromPosition: Int, toPosition: Int) {
-        if (subscriptionId.isEmpty()) {
+        if (subscriptionId.isEmpty() || subscriptionId.startsWith("group_")) {
             return
         }
 
@@ -152,6 +170,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun updateConfigViaSubAll(): SubscriptionUpdateResult {
         if (subscriptionId.isEmpty()) {
             return AngConfigManager.updateConfigViaSubAll()
+        } else if (subscriptionId.startsWith("group_")) {
+            val allSubs = MmkvManager.decodeSubscriptions()
+            val groupSubs = when (subscriptionId) {
+                "group_white" -> allSubs.filter { 
+                    it.subscription.remarks.startsWith("БЕЛЫЕ", ignoreCase = true) || 
+                    it.subscription.remarks.startsWith("WHITE", ignoreCase = true)
+                }
+                "group_black" -> allSubs.filter { 
+                    it.subscription.remarks.startsWith("ЧЕРНЫЕ", ignoreCase = true) || 
+                    it.subscription.remarks.startsWith("BLACK", ignoreCase = true)
+                }
+                else -> emptyList()
+            }
+            var totalResult = SubscriptionUpdateResult()
+            groupSubs.forEach { sub ->
+                val result = AngConfigManager.updateConfigViaSub(SubscriptionCache(sub.guid, sub.subscription))
+                totalResult = SubscriptionUpdateResult(
+                    configCount = totalResult.configCount + result.configCount,
+                    successCount = totalResult.successCount + result.successCount,
+                    failureCount = totalResult.failureCount + result.failureCount,
+                    skipCount = totalResult.skipCount + result.skipCount
+                )
+            }
+            return totalResult
         } else {
             val subItem = MmkvManager.decodeSubscription(subscriptionId) ?: return SubscriptionUpdateResult()
             return AngConfigManager.updateConfigViaSub(SubscriptionCache(subscriptionId, subItem))
@@ -218,12 +260,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (serversCache.isEmpty()) {
                 return@launch
             }
+            
+            val actualSubId = if (subscriptionId.startsWith("group_")) {
+                ""
+            } else {
+                subscriptionId
+            }
+            
             MessageUtil.sendMsg2TestService(
                 getApplication(),
                 TestServiceMessage(
                     key = AppConfig.MSG_MEASURE_CONFIG,
-                    subscriptionId = subscriptionId,
-                    serverGuids = if (keywordFilter.isNotEmpty()) serversCache.map { it.guid } else emptyList()
+                    subscriptionId = actualSubId,
+                    serverGuids = if (keywordFilter.isNotEmpty() || subscriptionId.startsWith("group_")) {
+                        serversCache.map { it.guid }
+                    } else {
+                        emptyList()
+                    }
                 )
             )
         }
@@ -266,18 +319,61 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             groups.add(
                 GroupMapItem(
                     id = "",
-                    remarks = context.getString(R.string.filter_config_all)
+                    remarks = context.getString(R.string.filter_config_all),
+                    subIds = emptyList()
                 )
             )
         }
+
+        val whiteList = mutableListOf<String>()
+        val blackList = mutableListOf<String>()
+        val otherGroups = mutableListOf<GroupMapItem>()
+
         subscriptions.forEach { sub ->
+            val remarks = sub.subscription.remarks
+            when {
+                remarks.startsWith("БЕЛЫЕ", ignoreCase = true) || 
+                remarks.startsWith("WHITE", ignoreCase = true) -> {
+                    whiteList.add(sub.guid)
+                }
+                remarks.startsWith("ЧЕРНЫЕ", ignoreCase = true) || 
+                remarks.startsWith("BLACK", ignoreCase = true) -> {
+                    blackList.add(sub.guid)
+                }
+                else -> {
+                    otherGroups.add(
+                        GroupMapItem(
+                            id = sub.guid,
+                            remarks = remarks,
+                            subIds = listOf(sub.guid)
+                        )
+                    )
+                }
+            }
+        }
+
+        if (whiteList.isNotEmpty()) {
             groups.add(
                 GroupMapItem(
-                    id = sub.guid,
-                    remarks = sub.subscription.remarks
+                    id = "group_white",
+                    remarks = "БЕЛЫЕ СПИСКИ",
+                    subIds = whiteList
                 )
             )
         }
+
+        if (blackList.isNotEmpty()) {
+            groups.add(
+                GroupMapItem(
+                    id = "group_black",
+                    remarks = "ЧЕРНЫЕ СПИСКИ",
+                    subIds = blackList
+                )
+            )
+        }
+
+        groups.addAll(otherGroups)
+
         return groups
     }
 
@@ -362,6 +458,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             MmkvManager.decodeSubsList().forEach { guid ->
                 sortByTestResultsForSub(guid)
             }
+        } else if (subscriptionId.startsWith("group_")) {
+            val allSubs = MmkvManager.decodeSubscriptions()
+            val groupSubs = when (subscriptionId) {
+                "group_white" -> allSubs.filter { 
+                    it.subscription.remarks.startsWith("БЕЛЫЕ", ignoreCase = true) || 
+                    it.subscription.remarks.startsWith("WHITE", ignoreCase = true)
+                }
+                "group_black" -> allSubs.filter { 
+                    it.subscription.remarks.startsWith("ЧЕРНЫЕ", ignoreCase = true) || 
+                    it.subscription.remarks.startsWith("BLACK", ignoreCase = true)
+                }
+                else -> emptyList()
+            }
+            groupSubs.forEach { sub ->
+                sortByTestResultsForSub(sub.guid)
+            }
         } else {
             sortByTestResultsForSub(subscriptionId)
         }
@@ -413,14 +525,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun findSubscriptionIdBySelect(): String? {
-        // Get the selected server GUID
         val selectedGuid = MmkvManager.getSelectServer()
         if (selectedGuid.isNullOrEmpty()) {
             return null
         }
 
         val config = MmkvManager.decodeServerConfig(selectedGuid)
-        return config?.subscriptionId
+        val subId = config?.subscriptionId ?: return null
+        
+        val subscription = MmkvManager.decodeSubscription(subId)
+        val remarks = subscription?.remarks ?: return subId
+        
+        return when {
+            remarks.startsWith("БЕЛЫЕ", ignoreCase = true) || 
+            remarks.startsWith("WHITE", ignoreCase = true) -> "group_white"
+            remarks.startsWith("ЧЕРНЫЕ", ignoreCase = true) || 
+            remarks.startsWith("BLACK", ignoreCase = true) -> "group_black"
+            else -> subId
+        }
     }
 
     fun onTestsFinished() {
