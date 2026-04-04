@@ -15,14 +15,13 @@ import com.v2ray.ang.AppConfig.ANG_PACKAGE
 import com.v2ray.ang.R
 import com.v2ray.ang.databinding.ActivityBypassListBinding
 import com.v2ray.ang.dto.AppInfo
-import com.v2ray.ang.extension.toast
+
 import com.v2ray.ang.extension.toastSuccess
 import com.v2ray.ang.extension.v2RayApplication
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsChangeManager
-import com.v2ray.ang.handler.SettingsManager
 import com.v2ray.ang.util.AppManagerUtil
-import com.v2ray.ang.util.HttpUtil
+
 import com.v2ray.ang.util.Utils
 import com.v2ray.ang.viewmodel.PerAppProxyViewModel
 import es.dmoral.toasty.Toasty
@@ -135,12 +134,6 @@ class PerAppProxyActivity : BaseActivity() {
             true
         }
 
-        R.id.select_proxy_app -> {
-            selectProxyAppAuto()
-            allowPerAppProxy()
-            true
-        }
-
         R.id.import_proxy_app -> {
             importProxyApp()
             allowPerAppProxy()
@@ -178,25 +171,6 @@ class PerAppProxyActivity : BaseActivity() {
         }
     }
 
-    private fun selectProxyAppAuto() {
-        toast(R.string.msg_downloading_content)
-        showLoading()
-
-        val url = AppConfig.ANDROID_PACKAGE_NAME_LIST_URL
-        lifecycleScope.launch(Dispatchers.IO) {
-            var content = HttpUtil.getUrlContent(url, 5000)
-            if (content.isNullOrEmpty()) {
-                val httpPort = SettingsManager.getHttpPort()
-                content = HttpUtil.getUrlContent(url, 5000, httpPort) ?: ""
-            }
-            launch(Dispatchers.Main) {
-                //Log.i(AppConfig.TAG, content)
-                selectProxyApp(content, true)
-                toastSuccess(R.string.toast_success)
-                hideLoading()
-            }
-        }
-    }
 
     private fun importProxyApp() {
         val content = Utils.getClipboard(applicationContext)
