@@ -88,11 +88,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 else -> emptyList()
             }
-            val combined = mutableListOf<String>()
+            
+            data class ServerWithDelay(val guid: String, val delay: Long)
+            val allServers = mutableListOf<ServerWithDelay>()
+            
             groupSubs.forEach { sub ->
-                combined.addAll(MmkvManager.decodeServerList(sub.guid))
+                val subServers = MmkvManager.decodeServerList(sub.guid)
+                subServers.forEach { guid ->
+                    val delay = MmkvManager.decodeServerAffiliationInfo(guid)?.testDelayMillis ?: 0L
+                    allServers.add(ServerWithDelay(guid, if (delay <= 0L) 999999 else delay))
+                }
             }
-            combined
+            
+            allServers.sortBy { it.delay }
+            allServers.map { it.guid }.toMutableList()
         } else {
             MmkvManager.decodeServerList(subscriptionId)
         }
