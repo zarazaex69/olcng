@@ -22,8 +22,14 @@
     "port": 10808,
     "protocol": "socks",
     "settings": {
-      "auth": "noauth",
-      "udp": true,
+      "auth": "password",
+      "accounts": [
+        {
+          "user": "v2ray_local",
+          "pass": "CHANGE_ME_ON_RUNTIME"
+        }
+      ],
+      "udp": false,
       "userLevel": 8
     },
     "sniffing": {
