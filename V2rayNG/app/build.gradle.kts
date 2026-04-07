@@ -65,6 +65,7 @@ android {
     productFlavors {
         create("fdroid") {
             dimension = "distribution"
+            applicationIdSuffix = ".fdroid"
             buildConfigField("String", "DISTRIBUTION", "\"F-Droid\"")
         }
         create("playstore") {

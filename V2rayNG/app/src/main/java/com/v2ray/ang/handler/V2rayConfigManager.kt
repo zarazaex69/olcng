@@ -380,14 +380,6 @@ object V2rayConfigManager {
             }
             inbound1.port = socksPort
             
-            if (inbound1.settings?.auth == "password" && inbound1.settings?.accounts != null) {
-                val randomPass = java.util.UUID.randomUUID().toString()
-                inbound1.settings?.accounts = listOf(
-                    V2rayConfig.InboundBean.InSettingsBean.AccountBean("v2ray_local", randomPass)
-                )
-                inbound1.settings?.udp = false
-            }
-            
             val fakedns = MmkvManager.decodeSettingsBool(AppConfig.PREF_FAKE_DNS_ENABLED) == true
             val sniffAllTlsAndHttp =
                 MmkvManager.decodeSettingsBool(AppConfig.PREF_SNIFFING_ENABLED, true) != false
