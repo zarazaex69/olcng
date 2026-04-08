@@ -5,7 +5,6 @@
 
 
 ![License](https://img.shields.io/badge/license-GPL--3.0-0D1117?style=flat-square&logo=open-source-initiative&logoColor=green&labelColor=0D1117)
-![C](https://img.shields.io/badge/-C-0D1117?style=flat-square&logo=C&logoColor=ACB4B8)
 ![Kotlin](https://img.shields.io/badge/-Kotlin-0D1117?style=flat-square&logo=Kotlin&logoColor=b21fea)
 
 </div>
