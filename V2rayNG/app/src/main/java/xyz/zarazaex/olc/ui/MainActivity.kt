@@ -646,11 +646,15 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     }
     
     private fun checkForUpdatesOnStartup() {
+        showStatus("Проверка обновлений...")
         lifecycleScope.launch {
             try {
                 val result = UpdateCheckerManager.checkForUpdate(true)
                 if (result.hasUpdate) {
+                    showStatus("Доступно обновление ${result.latestVersion}")
                     showUpdateAvailableDialog(result)
+                } else {
+                    showStatus("Обновлений нет")
                 }
             } catch (e: Exception) {
                 Log.e(AppConfig.TAG, "Failed to check for updates on startup: ${e.message}")
