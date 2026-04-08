@@ -40,13 +40,13 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystorePath = project.findProperty("android.injected.signing.store.file") as String?
+            val keystorePath = System.getenv("KEYSTORE_FILE")
                 ?: "${rootProject.projectDir}/release.keystore"
-            val keystorePassword = project.findProperty("android.injected.signing.store.password") as String?
+            val keystorePassword = System.getenv("KEYSTORE_PASSWORD")
                 ?: "android"
-            val keyAliasName = project.findProperty("android.injected.signing.key.alias") as String?
+            val keyAliasName = System.getenv("KEY_ALIAS")
                 ?: "v2rayng"
-            val keyAliasPassword = project.findProperty("android.injected.signing.key.password") as String?
+            val keyAliasPassword = System.getenv("KEY_PASSWORD")
                 ?: "android"
 
             storeFile = file(keystorePath)
