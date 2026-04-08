@@ -27,5 +27,6 @@ Email: [zarazaex@tuta.io](mailto:zarazaex@tuta.io)
 <br>
 Site: [zarazaex.xyz](https://zarazaex.xyz)
 <br>
+<a href="https://t.me/openlibrecommunity"><img alt="Telegram channel" src="https://img.shields.io/badge/Telegram_Channel-OLcNG?style=flat&logo=telegram&logoColor=%2326A5E4&labelColor=0D1117&color=0D1117"></a>
 
 </div>
