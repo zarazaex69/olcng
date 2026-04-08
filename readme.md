@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/openlibrecommunity/material/refs/heads/main/OLcNG.png" width="150">
+<img src="https://raw.githubusercontent.com/openlibrecommunity/material/refs/heads/master/OLcNG.png" width="150">
 
 
 
