@@ -621,14 +621,8 @@ object V2rayConfigManager {
                 )
             }
 
-            if (vpnDns.isNotEmpty()) {
-                vpnDns.forEach {
-                    servers.add(it)
-                }
-            } else {
-                remoteDns.forEach {
-                    servers.add(it)
-                }
+            remoteDns.forEach {
+                servers.add(it)
             }
 
             val blkDomain = getUserRule2Domain(AppConfig.TAG_BLOCKED)
