@@ -42,9 +42,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelectedListener {
-    private val binding by lazy {
-        ActivityMainBinding.inflate(layoutInflater)
-    }
+    private val binding by lazy {ActivityMainBinding.inflate(layoutInflater)}
     private var isLiteTesting = false
     private var easterEggClickCount = 0
     private var isEasterEggActive = false

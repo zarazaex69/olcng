@@ -1311,7 +1311,7 @@ object V2rayConfigManager {
                                 if (start != null && end != null) {
                                     val minStart = maxOf(5, start)
                                     val minEnd = maxOf(minStart, end)
-                                        "$minStart-$minEnd"
+                                    "$minStart-$minEnd"
                                 } else {
                                     "30"
                                 }
