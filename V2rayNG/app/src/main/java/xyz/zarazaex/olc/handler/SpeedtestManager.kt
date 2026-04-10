@@ -94,18 +94,23 @@ object SpeedtestManager {
         var result: String
         var elapsed = -1L
 
-        val conn = HttpUtil.createProxyConnection(SettingsManager.getDelayTestUrl(), port, 15000, 15000) ?: return Pair(elapsed, "")
+        val testUrl = "https://icanhazip.com"
+        val conn = HttpUtil.createProxyConnection(testUrl, port, 15000, 15000) ?: return Pair(elapsed, "")
         try {
             val start = SystemClock.elapsedRealtime()
             val code = conn.responseCode
+            
+            if (code != 200) {
+                throw IOException(context.getString(R.string.connection_test_error_status_code, code))
+            }
+            
+            val responseBody = conn.inputStream.bufferedReader().readText().trim()
             elapsed = SystemClock.elapsedRealtime() - start
-
-            result = when (code) {
-                204 -> context.getString(R.string.connection_test_available, elapsed)
-                200 if conn.contentLengthLong == 0L -> context.getString(R.string.connection_test_available, elapsed)
-                else -> throw IOException(
-                    context.getString(R.string.connection_test_error_status_code, code)
-                )
+            
+            if (xyz.zarazaex.olc.util.Utils.isPureIpAddress(responseBody)) {
+                result = context.getString(R.string.connection_test_available, elapsed)
+            } else {
+                throw IOException("Invalid IP response: $responseBody")
             }
         } catch (e: IOException) {
             Log.e(AppConfig.TAG, "Connection test IOException", e)
