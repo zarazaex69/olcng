@@ -273,26 +273,35 @@ object AngConfigManager {
     private fun batchSaveConfigs(configs: List<ProfileItem>, subid: String): Map<String, ProfileItem> {
         val keyToProfile = mutableMapOf<String, ProfileItem>()
 
-        // Read serverList once
         val serverList = MmkvManager.decodeServerList(subid)
         var needSetSelected = MmkvManager.getSelectServer().isNullOrBlank()
 
-        configs.forEach { config ->
-            val key = Utils.getUuid()
-            // Save profile directly without updating serverList
-            MmkvManager.encodeProfileDirect(key, JsonUtil.toJson(config))
+        val existingProfiles = serverList.mapNotNull { guid ->
+            MmkvManager.decodeServerConfig(guid)?.let { guid to it }
+        }.toMap()
 
-            if (!serverList.contains(key)) {
-                serverList.add(0, key)
-                if (needSetSelected) {
-                    MmkvManager.setSelectServer(key)
-                    needSetSelected = false
+        configs.forEach { config ->
+            val existingKey = existingProfiles.entries.firstOrNull { (_, existing) ->
+                existing == config
+            }?.key
+
+            if (existingKey != null) {
+                keyToProfile[existingKey] = config
+            } else {
+                val key = Utils.getUuid()
+                MmkvManager.encodeProfileDirect(key, JsonUtil.toJson(config))
+
+                if (!serverList.contains(key)) {
+                    serverList.add(0, key)
+                    if (needSetSelected) {
+                        MmkvManager.setSelectServer(key)
+                        needSetSelected = false
+                    }
                 }
+                keyToProfile[key] = config
             }
-            keyToProfile[key] = config
         }
 
-        // Write serverList once
         MmkvManager.encodeServerList(serverList, subid)
         return keyToProfile
     }
