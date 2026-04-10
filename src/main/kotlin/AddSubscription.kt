@@ -136,9 +136,17 @@ fun main() {
     )
     println("Добавлена подписка БЕЛЫЕ W: $guid2")
     
+    val guid3 = manager.addSubscription(
+        remarks = "KEY",
+        url = "https://key.zarazaex.xyz/sub",
+        autoUpdate = true
+    )
+    println("Добавлена подписка KEY: $guid3")
+    
     println("\nОбновление подписок...")
     manager.updateSubscription(guid1, "https://raw.githubusercontent.com/zieng2/wl/refs/heads/main/vless_universal.txt")
     manager.updateSubscription(guid2, "https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-all.txt")
+    manager.updateSubscription(guid3, "https://key.zarazaex.xyz/sub")
     
     println("\nПодписки успешно добавлены и обновлены в $mmkvPath")
 }
