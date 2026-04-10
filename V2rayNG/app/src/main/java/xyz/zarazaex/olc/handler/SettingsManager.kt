@@ -346,7 +346,7 @@ object SettingsManager {
      */
     fun getVpnDnsServers(): List<String> {
         val vpnDns = MmkvManager.decodeSettingsString(AppConfig.PREF_VPN_DNS) ?: AppConfig.DNS_VPN
-        return vpnDns.split(",").filter { Utils.isPureIpAddress(it) }
+        return vpnDns.split(",").filter { it.isNotBlank() }
     }
 
     /**

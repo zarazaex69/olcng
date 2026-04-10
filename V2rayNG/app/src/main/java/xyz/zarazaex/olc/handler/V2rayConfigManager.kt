@@ -594,6 +594,7 @@ object V2rayConfigManager {
 
             val remoteDns = SettingsManager.getRemoteDnsServers()
             val domesticDns = SettingsManager.getDomesticDnsServers()
+            val vpnDns = if (SettingsManager.isVpnMode()) SettingsManager.getVpnDnsServers() else emptyList()
             val proxyDomain = getUserRule2Domain(AppConfig.TAG_PROXY)
             val directDomain = getUserRule2Domain(AppConfig.TAG_DIRECT)
             val isCnRoutingMode = directDomain.contains(AppConfig.GEOSITE_CN)
@@ -620,8 +621,14 @@ object V2rayConfigManager {
                 )
             }
 
-            remoteDns.forEach {
-                servers.add(it)
+            if (vpnDns.isNotEmpty()) {
+                vpnDns.forEach {
+                    servers.add(it)
+                }
+            } else {
+                remoteDns.forEach {
+                    servers.add(it)
+                }
             }
 
             val blkDomain = getUserRule2Domain(AppConfig.TAG_BLOCKED)
