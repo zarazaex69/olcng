@@ -594,7 +594,6 @@ object V2rayConfigManager {
 
             val remoteDns = SettingsManager.getRemoteDnsServers()
             val domesticDns = SettingsManager.getDomesticDnsServers()
-            val vpnDns = if (SettingsManager.isVpnMode()) SettingsManager.getVpnDnsServers() else emptyList()
             val proxyDomain = getUserRule2Domain(AppConfig.TAG_PROXY)
             val directDomain = getUserRule2Domain(AppConfig.TAG_DIRECT)
             val isCnRoutingMode = directDomain.contains(AppConfig.GEOSITE_CN)
