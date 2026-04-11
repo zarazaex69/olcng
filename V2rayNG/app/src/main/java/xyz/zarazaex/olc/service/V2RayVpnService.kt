@@ -25,6 +25,7 @@ import xyz.zarazaex.olc.handler.MmkvManager
 import xyz.zarazaex.olc.handler.NotificationManager
 import xyz.zarazaex.olc.handler.SettingsManager
 import xyz.zarazaex.olc.handler.V2RayServiceManager
+import xyz.zarazaex.olc.util.MessageUtil
 import xyz.zarazaex.olc.util.MyContextWrapper
 import xyz.zarazaex.olc.util.Utils
 import java.lang.ref.SoftReference
@@ -94,6 +95,7 @@ class V2RayVpnService : VpnService(), ServiceControl {
         super.onDestroy()
         Log.i(AppConfig.TAG, "StartCore-VPN: Service destroyed")
         NotificationManager.cancelNotification()
+        MessageUtil.sendMsg2UI(this, AppConfig.MSG_STATE_STOP_SUCCESS, "")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

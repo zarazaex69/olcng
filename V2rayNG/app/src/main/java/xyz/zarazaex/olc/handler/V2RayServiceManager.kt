@@ -96,6 +96,11 @@ object V2RayServiceManager {
         }
 
         try {
+            if (serviceControl?.get() == null) {
+                Log.w(AppConfig.TAG, "StartCore-Manager: Service not running, resetting UI state")
+                MessageUtil.sendMsg2UI(context, AppConfig.MSG_STATE_STOP_SUCCESS, "")
+                return
+            }
             MessageUtil.sendMsg2Service(context, AppConfig.MSG_STATE_STOP, "")
         } finally {
             synchronized(operationLock) {
