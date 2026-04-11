@@ -13,6 +13,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -75,13 +76,51 @@ class RealPingWorkerService(
         }
     }
 
-    private fun startRealPing(guid: String): Long {
+    private suspend fun startRealPing(guid: String): Long {
         val retFailure = -1L
         val configResult = V2rayConfigManager.getV2rayConfig4Speedtest(context, guid)
         if (!configResult.status) {
             return retFailure
         }
-        return V2RayNativeManager.measureOutboundDelay(configResult.content, SettingsManager.getDelayTestUrl())
+
+        var bestDelay = retFailure
+        
+        for (attempt in 0 until 2) {
+            try {
+                val delay = withTimeout(10000L) {
+                    V2RayNativeManager.measureOutboundDelay(
+                        configResult.content, 
+                        SettingsManager.getDelayTestUrl()
+                    )
+                }
+                
+                if (delay > 0 && (bestDelay == retFailure || delay < bestDelay)) {
+                    bestDelay = delay
+                }
+                
+                if (bestDelay > 0) {
+                    break
+                }
+            } catch (e: Exception) {
+                if (attempt == 0) {
+                    try {
+                        val delay = withTimeout(10000L) {
+                            V2RayNativeManager.measureOutboundDelay(
+                                configResult.content, 
+                                SettingsManager.getDelayTestUrl(true)
+                            )
+                        }
+                        
+                        if (delay > 0 && (bestDelay == retFailure || delay < bestDelay)) {
+                            bestDelay = delay
+                        }
+                    } catch (_: Exception) {
+                    }
+                }
+            }
+        }
+        
+        return bestDelay
     }
 }
 
