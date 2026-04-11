@@ -156,8 +156,6 @@
     <string name="title_pref_is_booted">Автоподключение при запуске</string>
     <string name="summary_pref_is_booted">Автоматически подключаться к выбранному серверу при запуске приложения (может оказаться неудачным)</string>
 
-    <string name="title_pref_auto_remove_invalid_after_test">Автоудаление нерабочих профилей</string>
-    <string name="summary_pref_auto_remove_invalid_after_test">Автоматическое удаление нерабочих профилей после проверки (результаты проверки могут быть неточными; восстановить удалённые профили невозможно)</string>
     <string name="title_pref_auto_sort_after_test">Автосортировка профилей</string>
     <string name="summary_pref_auto_sort_after_test">Автоматическая сортировка профилей после проверки (результаты проверки могут быть неточными)</string>
 

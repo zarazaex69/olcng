@@ -557,25 +557,6 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             .show()
     }
 
-    private fun delInvalidConfig() {
-        AlertDialog.Builder(this).setMessage(R.string.del_invalid_config_comfirm)
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                showLoading()
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val ret = mainViewModel.removeInvalidServer()
-                    launch(Dispatchers.Main) {
-                        mainViewModel.reloadServerList()
-                        showStatus(getString(R.string.title_del_config_count, ret))
-                        hideLoading()
-                    }
-                }
-            }
-            .setNegativeButton(android.R.string.cancel) { _, _ ->
-                //do noting
-            }
-            .show()
-    }
-
     private fun sortByTestResults() {
         showLoading()
         lifecycleScope.launch(Dispatchers.IO) {

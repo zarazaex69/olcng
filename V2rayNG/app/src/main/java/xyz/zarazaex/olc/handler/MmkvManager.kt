@@ -293,34 +293,6 @@ object MmkvManager {
     }
 
     /**
-     * Removes invalid server configurations.
-     *
-     * @param guid The server GUID.
-     * @return The number of server configurations removed.
-     */
-    fun removeInvalidServer(guid: String): Int {
-        var count = 0
-        if (guid.isNotEmpty()) {
-            decodeServerAffiliationInfo(guid)?.let { aff ->
-                if (aff.testDelayMillis < 0L) {
-                    removeServer(guid)
-                    count++
-                }
-            }
-        } else {
-            serverAffStorage.allKeys()?.forEach { key ->
-                decodeServerAffiliationInfo(key)?.let { aff ->
-                    if (aff.testDelayMillis < 0L) {
-                        removeServer(key)
-                        count++
-                    }
-                }
-            }
-        }
-        return count
-    }
-
-    /**
      * Encodes the raw server configuration.
      *
      * @param guid The server GUID.

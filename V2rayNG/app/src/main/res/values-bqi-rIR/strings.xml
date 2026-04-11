@@ -155,8 +155,6 @@
     <string name="title_pref_is_booted">منپیز خوتکار مجال ره ونی</string>
     <string name="summary_pref_is_booted">مجال ره وندن، خوساخوس و سرور پسند بیڌه منپیز ابۊ که گاشڌ نا مووفق بۊ.</string>
 
-    <string name="title_pref_auto_remove_invalid_after_test">پاک کردن خوتکار کانفیگ نا موئتبر بئڌ آزمایش</string>
-    <string name="summary_pref_auto_remove_invalid_after_test">نتیجه یل آزمایش گاشڌ دییق نبۊن؛ کانفیگ پاک وابیڌه ن نتری وورگنی.</string>
     <string name="title_pref_auto_sort_after_test">ترتیب خوتکار بئڌ آزمایش</string>
     <string name="summary_pref_auto_sort_after_test">نتیجه یل آزمایش گاشڌ دییق نبۊن؛</string>
 
