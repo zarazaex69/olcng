@@ -267,6 +267,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch(Dispatchers.Default) {
             if (serversCache.isEmpty()) {
+                withContext(Dispatchers.Main) { reloadServerList() }
+            }
+            if (serversCache.isEmpty()) {
                 return@launch
             }
             
