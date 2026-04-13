@@ -308,6 +308,7 @@ object AngConfigManager {
             }?.key
 
             if (existingKey != null) {
+                config.isFavorite = existingProfiles[existingKey]?.isFavorite ?: false
                 MmkvManager.encodeProfileDirect(existingKey, JsonUtil.toJson(config))
                 keyToProfile[existingKey] = config
             } else {

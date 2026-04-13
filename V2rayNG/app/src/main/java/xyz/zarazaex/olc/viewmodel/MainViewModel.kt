@@ -89,26 +89,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 else -> emptyList()
             }
             
-            data class ServerWithDelay(val guid: String, val delay: Long)
+            data class ServerWithDelay(val guid: String, val delay: Long, val isFav: Boolean)
             val allServers = mutableListOf<ServerWithDelay>()
             
             groupSubs.forEach { sub ->
                 val subServers = MmkvManager.decodeServerList(sub.guid)
                 subServers.forEach { guid ->
                     val delay = MmkvManager.decodeServerAffiliationInfo(guid)?.testDelayMillis ?: 0L
+                    val isFav = MmkvManager.decodeServerConfig(guid)?.isFavorite ?: false
                     val sortKey = when {
                         delay > 0L -> delay
                         delay == 0L -> Long.MAX_VALUE - 1
                         else -> Long.MAX_VALUE
                     }
-                    allServers.add(ServerWithDelay(guid, sortKey))
+                    allServers.add(ServerWithDelay(guid, sortKey, isFav))
                 }
             }
             
-            allServers.sortBy { it.delay }
+            allServers.sortWith(compareBy({ !it.isFav }, { it.delay }))
             allServers.map { it.guid }.toMutableList()
         } else {
-            MmkvManager.decodeServerList(subscriptionId)
+            val list = MmkvManager.decodeServerList(subscriptionId)
+            list.sortWith(compareBy { !(MmkvManager.decodeServerConfig(it)?.isFavorite ?: false) })
+            list
         }
 
         updateCache()
@@ -466,7 +469,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun sortByTestResultsForGroup(groupId: String) {
-        data class ServerDelay(var guid: String, var testDelayMillis: Long, var subId: String)
+        data class ServerDelay(var guid: String, var testDelayMillis: Long, var subId: String, var isFav: Boolean)
 
         val allSubs = MmkvManager.decodeSubscriptions()
         val groupSubs = when (groupId) {
@@ -487,16 +490,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val serverList = MmkvManager.decodeServerList(sub.guid)
             serverList.forEach { guid ->
                 val delay = MmkvManager.decodeServerAffiliationInfo(guid)?.testDelayMillis ?: 0L
+                val isFav = MmkvManager.decodeServerConfig(guid)?.isFavorite ?: false
                 val sortKey = when {
                     delay > 0L -> delay
                     delay == 0L -> Long.MAX_VALUE - 1
                     else -> Long.MAX_VALUE
                 }
-                allServerDelays.add(ServerDelay(guid, sortKey, sub.guid))
+                allServerDelays.add(ServerDelay(guid, sortKey, sub.guid, isFav))
             }
         }
         
-        allServerDelays.sortBy { it.testDelayMillis }
+        allServerDelays.sortWith(compareBy({ !it.isFav }, { it.testDelayMillis }))
         
         val serversBySubId = allServerDelays.groupBy { it.subId }
         serversBySubId.forEach { (subId, servers) ->
@@ -510,21 +514,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      * @param subId The subscription ID to sort servers for.
      */
     private fun sortByTestResultsForSub(subId: String) {
-        data class ServerDelay(var guid: String, var testDelayMillis: Long)
+        data class ServerDelay(var guid: String, var testDelayMillis: Long, var isFav: Boolean)
 
         val serverDelays = mutableListOf<ServerDelay>()
         val serverListToSort = MmkvManager.decodeServerList(subId)
 
         serverListToSort.forEach { key ->
             val delay = MmkvManager.decodeServerAffiliationInfo(key)?.testDelayMillis ?: 0L
+            val isFav = MmkvManager.decodeServerConfig(key)?.isFavorite ?: false
             val sortKey = when {
                 delay > 0L -> delay
                 delay == 0L -> Long.MAX_VALUE - 1
                 else -> Long.MAX_VALUE
             }
-            serverDelays.add(ServerDelay(key, sortKey))
+            serverDelays.add(ServerDelay(key, sortKey, isFav))
         }
-        serverDelays.sortBy { it.testDelayMillis }
+        serverDelays.sortWith(compareBy({ !it.isFav }, { it.testDelayMillis }))
 
         val sortedServerList = serverDelays.map { it.guid }.toMutableList()
 
