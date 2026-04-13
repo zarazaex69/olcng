@@ -148,7 +148,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         setupGroupTab()
         setupViewModel()
         mainViewModel.reloadServerList()
-        importConfigViaSub()
+        importAllSubsOnStartup()
 
         checkAndRequestPermission(PermissionType.POST_NOTIFICATIONS) {
         }
@@ -488,6 +488,20 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     }
 
 
+    private fun importAllSubsOnStartup() {
+        showLoading()
+        lifecycleScope.launch(Dispatchers.IO) {
+            val result = AngConfigManager.updateConfigViaSubAll()
+            delay(500L)
+            launch(Dispatchers.Main) {
+                if (result.configCount > 0) {
+                    mainViewModel.reloadServerList()
+                    showStatus(getString(R.string.title_update_config_count, result.configCount))
+                }
+                hideLoading()
+            }
+        }
+    }
     /**
      * import config from sub
      */
