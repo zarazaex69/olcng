@@ -97,9 +97,11 @@ class RealPingWorkerService(
             // Notify UI about the individual result
             MessageUtil.sendMsg2UI(context, AppConfig.MSG_MEASURE_CONFIG_SUCCESS, Pair(guid, delay))
 
-            // Notify UI about progress (smooth updates)
-            val left = total - finished
-            MessageUtil.sendMsg2UI(context, AppConfig.MSG_MEASURE_CONFIG_NOTIFY, "$left / $total")
+            // Throttle progress updates: every 10 items or the very last one
+            if (finished % 10 == 0 || finished == total) {
+                val left = total - finished
+                MessageUtil.sendMsg2UI(context, AppConfig.MSG_MEASURE_CONFIG_NOTIFY, "$left / $total")
+            }
         }
     }
 
