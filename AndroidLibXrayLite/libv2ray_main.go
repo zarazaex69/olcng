@@ -193,8 +193,8 @@ func MeasureOutboundDelayBatch(itemsJson string, url string, callback PingCallba
 	}
 
 	// Use a worker pool to process items
-	// Reduce concurrency to 8 for maximum stability on diverse mobile hardware
-	concurrency := 8
+	// Middle ground: 16 concurrency for good performance without hitting OS limits
+	concurrency := 16
 	if len(items) < concurrency {
 		concurrency = len(items)
 	}
@@ -222,8 +222,8 @@ func MeasureOutboundDelayBatch(itemsJson string, url string, callback PingCallba
 					callback.OnResult(it.Guid, delay)
 				}
 				
-				// Small sleep to prevent overwhelming the system with broadcasts and rapid CPU spikes
-				time.Sleep(50 * time.Millisecond)
+				// Small sleep to prevent system congestion
+				time.Sleep(10 * time.Millisecond)
 			}
 		}()
 	}
