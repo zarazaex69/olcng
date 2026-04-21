@@ -128,4 +128,39 @@ data class ProfileItem(
                 && this.pinnedCA256 == obj.pinnedCA256
                 )
     }
+
+    override fun hashCode(): Int {
+        var result = server?.hashCode() ?: 0
+        result = 31 * result + (serverPort?.hashCode() ?: 0)
+        result = 31 * result + (password?.hashCode() ?: 0)
+        result = 31 * result + (method?.hashCode() ?: 0)
+        result = 31 * result + (flow?.hashCode() ?: 0)
+        result = 31 * result + (username?.hashCode() ?: 0)
+        result = 31 * result + (network?.hashCode() ?: 0)
+        result = 31 * result + (headerType?.hashCode() ?: 0)
+        result = 31 * result + (host?.hashCode() ?: 0)
+        result = 31 * result + (path?.hashCode() ?: 0)
+        result = 31 * result + (seed?.hashCode() ?: 0)
+        result = 31 * result + (quicSecurity?.hashCode() ?: 0)
+        result = 31 * result + (quicKey?.hashCode() ?: 0)
+        result = 31 * result + (mode?.hashCode() ?: 0)
+        result = 31 * result + (serviceName?.hashCode() ?: 0)
+        result = 31 * result + (authority?.hashCode() ?: 0)
+        result = 31 * result + (xhttpMode?.hashCode() ?: 0)
+        result = 31 * result + (security?.hashCode() ?: 0)
+        result = 31 * result + (sni?.hashCode() ?: 0)
+        result = 31 * result + (alpn?.hashCode() ?: 0)
+        result = 31 * result + (fingerPrint?.hashCode() ?: 0)
+        result = 31 * result + (publicKey?.hashCode() ?: 0)
+        result = 31 * result + (shortId?.hashCode() ?: 0)
+        result = 31 * result + (secretKey?.hashCode() ?: 0)
+        result = 31 * result + (localAddress?.hashCode() ?: 0)
+        result = 31 * result + (reserved?.hashCode() ?: 0)
+        result = 31 * result + (mtu ?: 0)
+        result = 31 * result + (obfsPassword?.hashCode() ?: 0)
+        result = 31 * result + (portHopping?.hashCode() ?: 0)
+        result = 31 * result + (portHoppingInterval?.hashCode() ?: 0)
+        result = 31 * result + (pinnedCA256?.hashCode() ?: 0)
+        return result
+    }
 }

@@ -241,8 +241,8 @@ object AngConfigManager {
 
                 val subItem = MmkvManager.decodeSubscription(subid)
 
-                val oldPingData = if (!append) {
-                    saveOldPingData(subid)
+                val oldServerData = if (!append) {
+                    saveOldServerData(subid)
                 } else {
                     emptyMap()
                 }
@@ -263,7 +263,7 @@ object AngConfigManager {
                         MmkvManager.removeServerViaSubid(subid)
                     }
                     val keyToProfile = batchSaveConfigs(configs, subid, append)
-                    restoreOldPingData(keyToProfile, oldPingData)
+                    restoreOldServerData(keyToProfile, oldServerData)
                     val matchKey = findMatchedProfileKey(keyToProfile, removedSelected)
                     matchKey?.let { MmkvManager.setSelectServer(it) }
                 }
@@ -330,31 +330,39 @@ object AngConfigManager {
         return keyToProfile
     }
 
-    private fun saveOldPingData(subid: String): Map<ProfileItem, Long> {
-        val pingData = mutableMapOf<ProfileItem, Long>()
+    private fun saveOldServerData(subid: String): Map<ProfileItem, Pair<Long, Boolean>> {
+        val serverData = mutableMapOf<ProfileItem, Pair<Long, Boolean>>()
         val serverList = MmkvManager.decodeServerList(subid)
         
         serverList.forEach { guid ->
             val profile = MmkvManager.decodeServerConfig(guid)
-            val aff = MmkvManager.decodeServerAffiliationInfo(guid)
-            if (profile != null && aff != null && aff.testDelayMillis > 0) {
-                pingData[profile] = aff.testDelayMillis
+            if (profile != null) {
+                val aff = MmkvManager.decodeServerAffiliationInfo(guid)
+                val delay = aff?.testDelayMillis ?: 0L
+                if (delay > 0 || profile.isFavorite) {
+                    serverData[profile] = Pair(delay, profile.isFavorite)
+                }
             }
         }
         
-        return pingData
+        return serverData
     }
 
-    private fun restoreOldPingData(keyToProfile: Map<String, ProfileItem>, oldPingData: Map<ProfileItem, Long>) {
-        if (oldPingData.isEmpty()) return
+    private fun restoreOldServerData(keyToProfile: Map<String, ProfileItem>, oldServerData: Map<ProfileItem, Pair<Long, Boolean>>) {
+        if (oldServerData.isEmpty()) return
         
         keyToProfile.forEach { (key, newProfile) ->
-            val oldPing = oldPingData.entries.firstOrNull { (oldProfile, _) ->
-                oldProfile == newProfile
-            }?.value
+            val oldData = oldServerData[newProfile]
             
-            if (oldPing != null && oldPing > 0) {
-                MmkvManager.encodeServerTestDelayMillis(key, oldPing)
+            if (oldData != null) {
+                val (oldPing, isFavorite) = oldData
+                if (oldPing > 0) {
+                    MmkvManager.encodeServerTestDelayMillis(key, oldPing)
+                }
+                if (isFavorite) {
+                    newProfile.isFavorite = true
+                    MmkvManager.encodeServerConfig(key, newProfile)
+                }
             }
         }
     }
