@@ -15,6 +15,7 @@ import xyz.zarazaex.olc.AngApplication
 import xyz.zarazaex.olc.AppConfig
 import xyz.zarazaex.olc.R
 import xyz.zarazaex.olc.dto.GroupMapItem
+import xyz.zarazaex.olc.dto.PingProgressUpdate
 import xyz.zarazaex.olc.dto.ServersCache
 import xyz.zarazaex.olc.dto.SubscriptionCache
 import xyz.zarazaex.olc.dto.SubscriptionUpdateResult
@@ -626,6 +627,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val resultPair = intent.serializable<Pair<String, Long>>("content") ?: return
                     MmkvManager.encodeServerTestDelayMillis(resultPair.first, resultPair.second)
                     updateListAction.value = getPosition(resultPair.first)
+                }
+
+                AppConfig.MSG_MEASURE_CONFIG_BATCH -> {
+                    val update = intent.serializable<PingProgressUpdate>("content") ?: return
+                    update.results.forEach { result ->
+                        MmkvManager.encodeServerTestDelayMillis(result.guid, result.delay)
+                    }
+                    updateListAction.value = -1
                 }
 
                 AppConfig.MSG_MEASURE_CONFIG_NOTIFY -> {

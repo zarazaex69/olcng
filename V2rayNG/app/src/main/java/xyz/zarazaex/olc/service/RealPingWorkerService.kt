@@ -6,8 +6,12 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import xyz.zarazaex.olc.AppConfig
+import xyz.zarazaex.olc.dto.PingProgressUpdate
+import xyz.zarazaex.olc.dto.PingResultItem
 import xyz.zarazaex.olc.handler.SettingsManager
 import xyz.zarazaex.olc.handler.V2RayNativeManager
 import xyz.zarazaex.olc.handler.V2rayConfigManager
@@ -29,12 +33,26 @@ class RealPingWorkerService(
 
     private val totalCount = AtomicInteger(guids.size)
     private val finishedCount = AtomicInteger(0)
+    private val pendingResults = ArrayList<PingResultItem>()
+    private val pendingLock = Any()
 
     private val delayTestUrl = SettingsManager.getDelayTestUrl()
+
+    companion object {
+        private const val RESULT_BATCH_SIZE = 32
+        private const val FLUSH_INTERVAL_MS = 1000L
+    }
 
     data class PingItem(val guid: String, val config: String)
 
     fun start() {
+        scope.launch(Dispatchers.IO) {
+            while (isActive) {
+                delay(FLUSH_INTERVAL_MS)
+                flushPendingResults()
+            }
+        }
+
         scope.launch(Dispatchers.IO) {
             try {
                 // Prepare configurations for batch test and shuffle for better async feel
@@ -67,8 +85,10 @@ class RealPingWorkerService(
                     )
                 }
 
+                flushPendingResults()
                 onFinish("0")
             } catch (e: Exception) {
+                flushPendingResults()
                 onFinish("-1")
             } finally {
                 cancel()
@@ -78,14 +98,42 @@ class RealPingWorkerService(
 
     private fun reportResult(guid: String, delay: Long) {
         val finished = finishedCount.incrementAndGet()
-        val total = guids.size
+        var readyBatch: PingProgressUpdate? = null
+        synchronized(pendingLock) {
+            pendingResults.add(PingResultItem(guid, delay))
+            if (pendingResults.size >= RESULT_BATCH_SIZE || finished >= totalCount.get()) {
+                readyBatch = createProgressUpdateLocked(finished)
+                pendingResults.clear()
+            }
+        }
+        readyBatch?.let(::sendBatchUpdate)
+    }
 
-        // Notify UI about the individual result
-        MessageUtil.sendMsg2UI(context, AppConfig.MSG_MEASURE_CONFIG_SUCCESS, Pair(guid, delay))
+    private fun flushPendingResults() {
+        val finished = finishedCount.get()
+        val update =
+            synchronized(pendingLock) {
+                if (pendingResults.isEmpty()) {
+                    null
+                } else {
+                    createProgressUpdateLocked(finished).also { pendingResults.clear() }
+                }
+            }
+        update?.let(::sendBatchUpdate)
+    }
 
-        // Notify UI about progress
-        val left = total - finished
-        MessageUtil.sendMsg2UI(context, AppConfig.MSG_MEASURE_CONFIG_NOTIFY, "$left / $total")
+    private fun createProgressUpdateLocked(finished: Int): PingProgressUpdate {
+        return PingProgressUpdate(
+            results = ArrayList(pendingResults),
+            finished = finished,
+            total = totalCount.get()
+        )
+    }
+
+    private fun sendBatchUpdate(update: PingProgressUpdate) {
+        MessageUtil.sendMsg2UI(context, AppConfig.MSG_MEASURE_CONFIG_BATCH, update)
+        val left = (update.total - update.finished).coerceAtLeast(0)
+        MessageUtil.sendMsg2UI(context, AppConfig.MSG_MEASURE_CONFIG_NOTIFY, "$left / ${update.total}")
     }
 
     fun cancel() {
