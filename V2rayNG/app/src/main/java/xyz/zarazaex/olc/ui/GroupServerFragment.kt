@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.google.android.material.snackbar.Snackbar
 import xyz.zarazaex.olc.AppConfig
 import xyz.zarazaex.olc.R
 import xyz.zarazaex.olc.contracts.MainAdapterListener
@@ -137,9 +138,7 @@ class GroupServerFragment : BaseFragment<FragmentGroupServerBinding>(),
      * @param guid The server unique identifier
      */
     private fun share2Clipboard(guid: String) {
-        if (AngConfigManager.share2Clipboard(ownerActivity, guid) == 0) {
-            ownerActivity.toastSuccess(R.string.toast_success)
-        } else {
+        if (AngConfigManager.share2Clipboard(ownerActivity, guid) != 0) {
             ownerActivity.toastError(R.string.toast_failure)
         }
     }
@@ -262,6 +261,10 @@ class GroupServerFragment : BaseFragment<FragmentGroupServerBinding>(),
 
         override fun onSelectServer(guid: String) {
             setSelectServer(guid)
+        }
+
+        override fun onCopyToClipboard(guid: String) {
+            share2Clipboard(guid)
         }
 
         override fun onShare(guid: String, profile: ProfileItem, position: Int, more: Boolean) {

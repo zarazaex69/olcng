@@ -99,16 +99,35 @@
 
                 </LinearLayout>
 
-                <ImageView
-                    android:id="@+id/iv_favorite"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:padding="@dimen/padding_spacing_dp8"
-                    android:src="@drawable/ic_star_empty" />
+                    android:orientation="vertical"
+                    android:gravity="end">
+
+                    <ImageView
+                        android:id="@+id/iv_favorite"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:padding="@dimen/padding_spacing_dp8"
+                        android:src="@drawable/ic_star_empty" />
+
+                    <ImageView
+                        android:id="@+id/iv_copy"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:padding="@dimen/padding_spacing_dp8"
+                        android:visibility="gone"
+                        app:srcCompat="@drawable/ic_copy"
+                        app:tint="?attr/colorAccent" />
+
+                </LinearLayout>
 
             </LinearLayout>
 

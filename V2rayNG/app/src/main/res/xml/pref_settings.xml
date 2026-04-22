@@ -28,6 +28,12 @@
             android:summary="@string/summary_pref_group_all_display"
             android:title="@string/title_pref_group_all_display" />
 
+        <CheckBoxPreference
+            android:key="pref_show_copy_button"
+            android:defaultValue="false"
+            android:summary="@string/summary_pref_show_copy_button"
+            android:title="@string/title_pref_show_copy_button" />
+
         <ListPreference
             android:defaultValue="auto"
             android:entries="@array/language_select"

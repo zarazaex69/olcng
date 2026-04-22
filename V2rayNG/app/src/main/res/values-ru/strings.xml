@@ -236,6 +236,9 @@
 
     <string name="title_pref_group_all_display">Общая вкладка групп</string>
     <string name="summary_pref_group_all_display">Показывать дополнительную вкладку со всеми профилями групп</string>
+
+    <string name="title_pref_show_copy_button">Кнопка копирования</string>
+    <string name="summary_pref_show_copy_button">Показывать кнопку копирования конфигурации сервера в буфер обмена</string>
     <!-- AboutActivity -->
     <string name="title_pref_feedback">Обратная связь</string>
     <string name="summary_pref_feedback">Предложить улучшение или сообщить об ошибке на GitHub</string>

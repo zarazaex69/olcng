@@ -33,6 +33,8 @@ class MainRecyclerAdapter(
 
     private val doubleColumnDisplay =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_DOUBLE_COLUMN_DISPLAY, false)
+    private val showCopyButton =
+            MmkvManager.decodeSettingsBool(AppConfig.PREF_SHOW_COPY_BUTTON, false)
     private var data: MutableList<ServersCache> = mutableListOf()
     private var recyclerView: RecyclerView? = null
 
@@ -198,6 +200,11 @@ class MainRecyclerAdapter(
                 profile.isFavorite = !profile.isFavorite
                 MmkvManager.encodeServerConfig(guid, profile)
                 mainViewModel.reloadServerList()
+            }
+
+            holder.itemMainBinding.ivCopy.visibility = if (showCopyButton) View.VISIBLE else View.GONE
+            holder.itemMainBinding.ivCopy.setOnClickListener {
+                adapterListener?.onCopyToClipboard(guid)
             }
 
             holder.itemMainBinding.infoContainer.setOnClickListener {
