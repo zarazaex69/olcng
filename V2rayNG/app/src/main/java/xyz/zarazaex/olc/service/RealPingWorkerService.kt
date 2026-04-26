@@ -6,6 +6,8 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -55,19 +57,20 @@ class RealPingWorkerService(
 
         scope.launch(Dispatchers.IO) {
             try {
-                // Prepare configurations for batch test and shuffle for better async feel
-                val items =
-                        guids.shuffled().mapNotNull { guid ->
-                            val configResult =
-                                    V2rayConfigManager.getV2rayConfig4Speedtest(context, guid)
-                            if (configResult.status) {
-                                PingItem(guid, configResult.content)
-                            } else {
-                                // Notify failure immediately for invalid configs
-                                reportResult(guid, -1L)
-                                null
-                            }
+                // Prepare configurations in parallel for faster startup
+                val shuffledGuids = guids.shuffled()
+                val deferredItems = shuffledGuids.map { guid ->
+                    async(Dispatchers.IO) {
+                        val configResult = V2rayConfigManager.getV2rayConfig4Speedtest(context, guid)
+                        if (configResult.status) {
+                            PingItem(guid, configResult.content)
+                        } else {
+                            reportResult(guid, -1L)
+                            null
                         }
+                    }
+                }
+                val items = deferredItems.awaitAll().filterNotNull()
 
                 if (items.isNotEmpty()) {
                     val configsJson = JsonUtil.toJson(items)
