@@ -612,7 +612,7 @@ object AngConfigManager {
             Log.i(AppConfig.TAG, url)
             val userAgent = it.subscription.userAgent
 
-            val timeout = if (url.startsWith("https://key.zarazaex.xyz/sub")) 3000 else 15000
+            val timeout = if (url.startsWith("https://key.zarazaex.xyz/sub")) 3000 else 6000
 
             var configText = try {
                 val httpPort = SettingsManager.getHttpPort()

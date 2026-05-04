@@ -126,7 +126,7 @@ class MainRecyclerAdapter(
                     val isFav = item.profile.isFavorite
                     // Set correct icon immediately, then animate scale bounce
                     holder.itemMainBinding.ivFavorite.setImageResource(
-                        if (isFav) R.drawable.ic_star_filled else R.drawable.ic_star_empty
+                        if (isFav) R.drawable.ic_star_filled else R.drawable.kid_star_24
                     )
                     animateFavorite(holder.itemMainBinding.ivFavorite)
                 }
@@ -192,7 +192,7 @@ class MainRecyclerAdapter(
 
             val isFav = profile.isFavorite
             holder.itemMainBinding.ivFavorite.setImageResource(
-                    if (isFav) R.drawable.ic_star_filled else R.drawable.ic_star_empty
+                    if (isFav) R.drawable.ic_star_filled else R.drawable.kid_star_24
             )
 
             holder.itemMainBinding.ivFavorite.setOnClickListener {

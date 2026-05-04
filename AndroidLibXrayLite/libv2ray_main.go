@@ -50,6 +50,7 @@ type PingCallback interface {
 	OnResult(guid string, delay int64)
 }
 
+
 // CoreCallbackHandler defines interface for receiving callbacks and notifications from the core service
 type CoreCallbackHandler interface {
 	Startup() int

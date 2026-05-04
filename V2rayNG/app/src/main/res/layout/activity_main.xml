@@ -16,10 +16,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <androidx.appcompat.widget.Toolbar
+            <com.google.android.material.appbar.MaterialToolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize" />
+                android:layout_height="?attr/actionBarSize"
+                app:titleCentered="true" />
 
         </com.google.android.material.appbar.AppBarLayout>
 
@@ -53,6 +54,7 @@
                         app:tabMode="fixed"
                         app:tabGravity="fill"
                         app:tabMaxWidth="0dp"
+                        app:tabRippleColor="@android:color/transparent"
                         app:tabTextAppearance="@style/TabLayoutTextStyle" />
 
                     <androidx.viewpager2.widget.ViewPager2
@@ -88,7 +90,7 @@
                                 android:layout_marginEnd="16dp"
                                 android:clickable="true"
                                 android:focusable="true"
-                                android:src="@drawable/ic_lite_bolt"
+                                android:src="@drawable/bolt_24"
                                 app:tint="@color/colorWhite"
                                 app:backgroundTint="@color/color_fab_inactive"
                                 app:fabSize="normal"
@@ -105,7 +107,7 @@
                                 android:contentDescription="@string/tasker_start_service"
                                 android:focusable="true"
                                 android:nextFocusLeft="@+id/layout_test"
-                                android:src="@drawable/ic_play_24dp"
+                                android:src="@drawable/rocket_launch_24"
                                 app:tint="@color/colorWhite"
                                 app:fabSize="normal"
                                 app:maxImageSize="28dp"

@@ -12,9 +12,9 @@ import xyz.zarazaex.olc.dto.CheckUpdateResult
 import xyz.zarazaex.olc.extension.toast
 import xyz.zarazaex.olc.extension.toastError
 import xyz.zarazaex.olc.extension.toastSuccess
-import xyz.zarazaex.olc.handler.MmkvManager
 import xyz.zarazaex.olc.handler.UpdateCheckerManager
 import xyz.zarazaex.olc.handler.V2RayNativeManager
+import xyz.zarazaex.olc.util.MarkdownUtil
 import xyz.zarazaex.olc.util.Utils
 import kotlinx.coroutines.launch
 
@@ -24,33 +24,29 @@ class CheckUpdateActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        //setContentView(binding.root)
         setContentViewWithToolbar(binding.root, showHomeAsUp = true, title = getString(R.string.update_check_for_update))
 
         binding.layoutCheckUpdate.setOnClickListener {
-            checkForUpdates(binding.checkPreRelease.isChecked)
+            checkForUpdates()
         }
 
-        binding.checkPreRelease.setOnCheckedChangeListener { _, isChecked ->
-            MmkvManager.encodeSettings(AppConfig.PREF_CHECK_UPDATE_PRE_RELEASE, isChecked)
-        }
-        binding.checkPreRelease.isChecked = true
-        MmkvManager.encodeSettings(AppConfig.PREF_CHECK_UPDATE_PRE_RELEASE, true)
+        // Hide the pre-release toggle - we always check releases
+        binding.checkPreRelease.visibility = android.view.View.GONE
 
         "v${BuildConfig.VERSION_NAME} (${V2RayNativeManager.getLibVersion()})".also {
             binding.tvVersion.text = it
         }
 
-        checkForUpdates(binding.checkPreRelease.isChecked)
+        checkForUpdates()
     }
 
-    private fun checkForUpdates(includePreRelease: Boolean) {
+    private fun checkForUpdates() {
         toast(R.string.update_checking_for_update)
         showLoading()
 
         lifecycleScope.launch {
             try {
-                val result = UpdateCheckerManager.checkForUpdate(includePreRelease)
+                val result = UpdateCheckerManager.checkForUpdate(false)
                 if (result.hasUpdate) {
                     showUpdateDialog(result)
                 } else {
@@ -67,9 +63,10 @@ class CheckUpdateActivity : BaseActivity() {
     }
 
     private fun showUpdateDialog(result: CheckUpdateResult) {
+        val message = result.releaseNotes?.let { MarkdownUtil.parseBasic(it) } ?: ""
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.update_new_version_found, result.latestVersion))
-            .setMessage(result.releaseNotes)
+            .setMessage(message)
             .setPositiveButton(R.string.update_now) { _, _ ->
                 result.downloadUrl?.let {
                     Utils.openUri(this, it)

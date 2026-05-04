@@ -207,12 +207,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun collectAllCountries(): Map<String, String> {
         val result = mutableMapOf<String, String>()
+        var hasUnknown = false
         for (guid in serverList) {
             val profile = MmkvManager.decodeServerConfig(guid) ?: continue
             val code = CountryDetector.getCountryCode(profile.remarks, profile.server)
-            if (code != CountryDetector.UNKNOWN) {
+            if (code == CountryDetector.UNKNOWN) {
+                hasUnknown = true
+            } else {
                 result[code] = "${CountryDetector.codeToFlag(code)} ${CountryDetector.codeToName(code)}"
             }
+        }
+        if (hasUnknown) {
+            result[CountryDetector.UNKNOWN] = "🌐 Неизвестно"
         }
         return result.toSortedMap()
     }

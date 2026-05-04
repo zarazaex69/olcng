@@ -14,16 +14,10 @@
         app:showAsAction="always" />
 
     <item
-        android:id="@+id/dedupe_by_ip"
-        android:icon="@drawable/ic_delete_24dp"
-        android:title="Удалить дубликаты по IP"
-        app:showAsAction="never" />
-
-    <item
         android:id="@+id/filter_by_country"
-        android:icon="@drawable/ic_outline_filter_alt_24"
+        android:icon="@drawable/public_24"
         android:title="Фильтр по странам"
-        app:showAsAction="never" />
+        app:showAsAction="always" />
 
     <item
         android:id="@+id/sub_update"

@@ -74,7 +74,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        setupToolbar(binding.toolbar, false, getString(R.string.title_server))
+        setupToolbar(binding.toolbar, false, getString(R.string.app_name))
 
         groupPagerAdapter = GroupPagerAdapter(this, emptyList())
         binding.viewPager.adapter = groupPagerAdapter
@@ -172,8 +172,15 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             setButtonsEnabled(!testing)
             if (testing) {
                 binding.btnSummaryLite.setImageResource(R.drawable.ic_stop_24dp)
+                // Allow stopping the test
+                binding.btnSummaryLite.isEnabled = true
+                binding.btnSummaryLite.alpha = 1.0f
             } else {
-                binding.btnSummaryLite.setImageResource(R.drawable.ic_lite_bolt)
+                binding.btnSummaryLite.setImageResource(R.drawable.bolt_24)
+                // Re-apply running state to set correct enabled state
+                val isRunning = mainViewModel.isRunning.value == true
+                binding.btnSummaryLite.isEnabled = !isRunning
+                binding.btnSummaryLite.alpha = if (isRunning) 0.5f else 1.0f
             }
         }
 
@@ -219,6 +226,18 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         binding.viewPager.setCurrentItem(targetIndex, false)
 
         binding.tabGroup.isVisible = groups.size > 1
+
+        // Double-tap on a tab scrolls to top of that group
+        binding.tabGroup.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
+            override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
+            override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
+                val currentItem = binding.viewPager.currentItem
+                val itemId = groupPagerAdapter.getItemId(currentItem)
+                val fragment = supportFragmentManager.findFragmentByTag("f$itemId") as? GroupServerFragment
+                fragment?.scrollToTop()
+            }
+        })
     }
 
     private fun setButtonsEnabled(enabled: Boolean) {
@@ -230,7 +249,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             it.isEnabled = enabled
             it.icon?.alpha = if (enabled) 255 else 128
         }
-        menu.findItem(R.id.dedupe_by_ip)?.let {
+        menu.findItem(R.id.filter_by_country)?.let {
             it.isEnabled = enabled
             it.icon?.alpha = if (enabled) 255 else 128
         }
@@ -409,13 +428,21 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             binding.fab.contentDescription = getString(R.string.action_stop_service)
             setTestState(getString(R.string.connection_connected))
             binding.layoutTest.isFocusable = true
+            // Block lightning while VPN is connected (unless test is running)
+            if (mainViewModel.isTesting.value != true) {
+                binding.btnSummaryLite.isEnabled = false
+                binding.btnSummaryLite.alpha = 0.5f
+            }
         } else {
-            binding.fab.setImageResource(R.drawable.ic_play_24dp)
+            binding.fab.setImageResource(R.drawable.rocket_launch_24)
             binding.fab.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.color_fab_inactive))
             binding.btnSummaryLite.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.color_fab_inactive))
             binding.fab.contentDescription = getString(R.string.tasker_start_service)
             setTestState(getString(R.string.connection_not_connected))
             binding.layoutTest.isFocusable = false
+            // Enable lightning when VPN is disconnected
+            binding.btnSummaryLite.isEnabled = true
+            binding.btnSummaryLite.alpha = 1.0f
         }
     }
 
@@ -465,26 +492,6 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         R.id.real_ping_all -> {
             showStatus(getString(R.string.connection_test_testing_count, mainViewModel.serversCache.count()))
             mainViewModel.testAllRealPing()
-            true
-        }
-
-        R.id.dedupe_by_ip -> {
-            androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Удалить дубликаты по IP")
-                .setMessage("Будут удалены серверы с одинаковым IP-адресом. Оставим лучший по пингу (или первый попавшийся, если тест не запускался). Продолжить?")
-                .setPositiveButton(android.R.string.ok) { _, _ ->
-                    showLoading()
-                    lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                        val removed = mainViewModel.removeDuplicateByIp()
-                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                            mainViewModel.reloadServerList()
-                            showStatus("Удалено дубликатов по IP: $removed")
-                            hideLoading()
-                        }
-                    }
-                }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
             true
         }
 
@@ -798,37 +805,46 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     private fun showCountryFilterDialog() {
         showLoading()
         lifecycleScope.launch(Dispatchers.IO) {
-            // Collect countries from full server list (not only visible)
-            mainViewModel.refreshCountryCache()   // fire bg lookup for unknowns
-            val allCountries = mainViewModel.collectAllCountries() // code → "🇷🇺 Россия"
-            val currentFilter = mainViewModel.countryFilter
+            mainViewModel.refreshCountryCache()
+            // Collect all countries including UNKNOWN
+            val allCountriesMap = mainViewModel.collectAllCountries().toMutableMap()
+            // Add Unknown entry
+            allCountriesMap[CountryDetector.UNKNOWN] = "🌐 Неизвестно"
+
+            val currentFilter = mainViewModel.countryFilter  // empty = show all
 
             withContext(Dispatchers.Main) {
                 hideLoading()
-                if (allCountries.isEmpty()) {
+                if (allCountriesMap.size <= 1) {
                     showStatus("Нет серверов с известной страной")
                     return@withContext
                 }
 
-                val codes  = allCountries.keys.toTypedArray()
-                val labels = allCountries.values.toTypedArray()
-                // empty filter = show all → treat as all checked
-                val checked = BooleanArray(codes.size) {
-                    currentFilter.isEmpty() || codes[it] in currentFilter
-                }
+                val codes = allCountriesMap.keys.toTypedArray()
+                val labels = allCountriesMap.values.toTypedArray()
+
+                // In exclude mode: checked = should be EXCLUDED
+                // currentFilter stores included set (empty = show all)
+                // Convert to excluded set for UI
+                val allCodes = codes.toSet()
+                val excludedByFilter = if (currentFilter.isEmpty()) emptySet()
+                    else allCodes - currentFilter
+
+                val checked = BooleanArray(codes.size) { codes[it] in excludedByFilter }
 
                 androidx.appcompat.app.AlertDialog.Builder(this@MainActivity)
-                    .setTitle("Фильтр по странам")
+                    .setTitle("Исключить страны")
                     .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
                         checked[which] = isChecked
                     }
                     .setPositiveButton("Применить") { _, _ ->
-                        val selected = codes.filterIndexed { i, _ -> checked[i] }.toSet()
-                        // if all selected or none selected → no filter (show all)
-                        val filter = if (selected.size == codes.size || selected.isEmpty()) emptySet() else selected
-                        mainViewModel.applyCountryFilter(filter)
-                        val msg = if (filter.isEmpty()) "Показаны все страны"
-                                  else "Фильтр: ${filter.joinToString { CountryDetector.codeToFlag(it) }}"
+                        val excluded = codes.filterIndexed { i, _ -> checked[i] }.toSet()
+                        // Convert excluded set to include filter (empty = show all)
+                        val included = if (excluded.isEmpty()) emptySet()
+                            else allCodes - excluded
+                        mainViewModel.applyCountryFilter(included)
+                        val msg = if (excluded.isEmpty()) "Показаны все страны"
+                            else "Скрыто: ${excluded.joinToString { CountryDetector.codeToFlag(it) }}"
                         showStatus(msg)
                     }
                     .setNeutralButton("Сбросить") { _, _ ->
@@ -859,15 +875,16 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     }
     
     private fun showUpdateAvailableDialog(result: xyz.zarazaex.olc.dto.CheckUpdateResult) {
+        val message = result.releaseNotes?.let { xyz.zarazaex.olc.util.MarkdownUtil.parseBasic(it) } ?: ""
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.update_new_version_found, result.latestVersion))
-            .setMessage(result.releaseNotes)
+            .setMessage(message)
             .setPositiveButton(R.string.update_now) { _, _ ->
                 result.downloadUrl?.let {
                     Utils.openUri(this, it)
                 }
             }
-            .setNegativeButton(android.R.string.ok, null)
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
     

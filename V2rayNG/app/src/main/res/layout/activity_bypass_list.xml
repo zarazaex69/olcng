@@ -15,58 +15,58 @@
         android:orientation="vertical"
         android:padding="@dimen/padding_spacing_dp16">
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="@string/split_tunneling_description"
+            android:textAppearance="@style/TextAppearance.AppCompat.Small"
+            android:alpha="0.7" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:gravity="center_horizontal">
 
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:id="@+id/container_per_app_proxy"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:layout_weight="1"
+                android:gravity="center"
                 android:orientation="horizontal">
 
-                <LinearLayout
-                    android:id="@+id/container_per_app_proxy"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:orientation="horizontal">
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switch_per_app_proxy"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="2"
+                    android:text="@string/per_app_proxy_settings_enable"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Small"
+                    app:theme="@style/BrandedSwitch" />
 
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/switch_per_app_proxy"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:maxLines="2"
-                        android:text="@string/per_app_proxy_settings_enable"
-                        android:textAppearance="@style/TextAppearance.AppCompat.Small"
-                        app:theme="@style/BrandedSwitch" />
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/container_bypass_apps"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:orientation="horizontal">
-
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/switch_bypass_apps"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/switch_bypass_apps_mode"
-                        android:textAppearance="@style/TextAppearance.AppCompat.Small"
-                        app:theme="@style/BrandedSwitch" />
-
-
-                </LinearLayout>
             </LinearLayout>
 
+            <LinearLayout
+                android:id="@+id/container_bypass_apps"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="horizontal">
 
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switch_bypass_apps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/switch_bypass_apps_mode"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Small"
+                    app:theme="@style/BrandedSwitch" />
+
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 

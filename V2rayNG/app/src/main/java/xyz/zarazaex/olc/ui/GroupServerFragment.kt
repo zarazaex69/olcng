@@ -288,6 +288,13 @@ class GroupServerFragment : BaseFragment<FragmentGroupServerBinding>(),
     }
 
     /**
+     * Scrolls to the top of the list (called on double-tap on tab)
+     */
+    fun scrollToTop() {
+        binding.recyclerView.smoothScrollToPosition(0)
+    }
+
+    /**
      * Scrolls to the currently selected server in the RecyclerView
      */
     fun scrollToSelectedServer() {

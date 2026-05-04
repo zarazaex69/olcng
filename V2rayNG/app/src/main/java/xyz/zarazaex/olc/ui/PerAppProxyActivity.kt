@@ -90,7 +90,7 @@ class PerAppProxyActivity : BaseActivity() {
                 }
 
                 appsAll = apps
-                adapter = PerAppProxyAdapter(apps, viewModel)
+                adapter = PerAppProxyAdapter(apps.toMutableList(), viewModel)
                 binding.recyclerView.adapter = adapter
 
             } catch (e: Exception) {

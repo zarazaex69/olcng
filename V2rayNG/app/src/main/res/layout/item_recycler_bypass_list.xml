@@ -14,30 +14,23 @@
         android:layout_height="@dimen/view_height_dp48"
         android:padding="@dimen/padding_spacing_dp8" />
 
-    <LinearLayout
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1.0"
-        android:gravity="center"
-        android:orientation="vertical">
+        android:maxLines="1"
+        android:paddingStart="@dimen/padding_spacing_dp8"
+        android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/name"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
+    <!-- package_name hidden but kept for adapter compatibility -->
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/package_name"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/package_name"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:maxLines="3"
-            android:paddingTop="@dimen/padding_spacing_dp8"
-            android:textAppearance="@style/TextAppearance.AppCompat.Small" />
-    </LinearLayout>
-
-    <androidx.appcompat.widget.AppCompatCheckBox
+    <com.google.android.material.checkbox.MaterialCheckBox
         android:id="@+id/check_box"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
