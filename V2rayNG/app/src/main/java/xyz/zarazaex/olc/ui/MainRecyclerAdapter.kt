@@ -59,55 +59,48 @@ class MainRecyclerAdapter(
     }
 
     @SuppressLint("NotifyDataSetChanged")
-    fun setData(newData: MutableList<ServersCache>?, position: Int = -1) {
-        val parsedNewData = newData?.toList() ?: emptyList()
+    fun setData(newData: List<ServersCache>) {
+        val oldData = data
+        val parsedNewData = newData
 
-        if (data.isEmpty() || parsedNewData.isEmpty() || position >= 0) {
+        if (oldData.isEmpty() || parsedNewData.isEmpty()) {
             data = parsedNewData.toMutableList()
             recomputePingRange()
-            if (position >= 0 && position in data.indices) {
-                notifyItemChanged(position)
-            } else {
-                notifyDataSetChanged()
-            }
+            notifyDataSetChanged()
             return
         }
 
-        val oldData = data
         val lm = recyclerView?.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager
         val firstVisible = lm?.findFirstVisibleItemPosition()?.coerceAtLeast(0) ?: 0
         val isAtTop = firstVisible == 0 && (lm?.findViewByPosition(0)?.top ?: 0) >= 0
         val firstVisibleGuid = if (!isAtTop) oldData.getOrNull(firstVisible)?.guid else null
 
-        val diffResult =
-                androidx.recyclerview.widget.DiffUtil.calculateDiff(
-                        object : androidx.recyclerview.widget.DiffUtil.Callback() {
-                            override fun getOldListSize() = oldData.size
-                            override fun getNewListSize() = parsedNewData.size
+        val diffResult = androidx.recyclerview.widget.DiffUtil.calculateDiff(
+            object : androidx.recyclerview.widget.DiffUtil.Callback() {
+                override fun getOldListSize() = oldData.size
+                override fun getNewListSize() = parsedNewData.size
 
-                            override fun areItemsTheSame(oldPos: Int, newPos: Int): Boolean {
-                                return oldData[oldPos].guid == parsedNewData[newPos].guid
-                            }
+                override fun areItemsTheSame(oldPos: Int, newPos: Int) =
+                    oldData[oldPos].guid == parsedNewData[newPos].guid
 
-                            override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean {
-                                val old = oldData[oldPos]
-                                val new = parsedNewData[newPos]
-                                val selectedGuid = MmkvManager.getSelectServer()
-                                return old.profile == new.profile &&
-                                        old.profile.isFavorite == new.profile.isFavorite &&
-                                        (old.guid == selectedGuid) == (new.guid == selectedGuid) &&
-                                        old.testDelayMillis == new.testDelayMillis
-                            }
+                override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean {
+                    val old = oldData[oldPos]
+                    val new = parsedNewData[newPos]
+                    return old.profile == new.profile &&
+                            old.profile.isFavorite == new.profile.isFavorite &&
+                            old.isSelected == new.isSelected &&
+                            old.testDelayMillis == new.testDelayMillis
+                }
 
-                            override fun getChangePayload(oldPos: Int, newPos: Int): Any? {
-                                if (oldData[oldPos].profile.isFavorite != parsedNewData[newPos].profile.isFavorite) {
-                                    return PAYLOAD_FAVORITE
-                                }
-                                return super.getChangePayload(oldPos, newPos)
-                            }
-                        },
-                        true
-                )
+                override fun getChangePayload(oldPos: Int, newPos: Int): Any? {
+                    if (oldData[oldPos].profile.isFavorite != parsedNewData[newPos].profile.isFavorite) {
+                        return PAYLOAD_FAVORITE
+                    }
+                    return super.getChangePayload(oldPos, newPos)
+                }
+            },
+            true
+        )
 
         data = parsedNewData.toMutableList()
         recomputePingRange()
@@ -181,8 +174,7 @@ class MainRecyclerAdapter(
             (holder.itemMainBinding.tvTestResult.layoutParams as? ViewGroup.MarginLayoutParams)?.marginStart =
                     if (addressText.isEmpty()) 0 else 6.dpToPx(context)
 
-            // Keep regular list items on the page surface; selected state is a quiet surface pill.
-            val isSelected = guid == MmkvManager.getSelectServer()
+            val isSelected = data[position].isSelected
             holder.itemMainBinding.cardContainer.apply {
                 val selectedColor = MaterialColors.getColor(
                     context,
@@ -295,21 +287,6 @@ class MainRecyclerAdapter(
         return subRemarks?.toString() ?: ""
     }
 
-    fun removeServerSub(guid: String, position: Int) {
-        val idx = data.indexOfFirst { it.guid == guid }
-        if (idx >= 0) {
-            data.removeAt(idx)
-            recomputePingRange()
-            notifyItemRemoved(idx)
-            notifyItemRangeChanged(idx, data.size - idx)
-        }
-    }
-
-    fun setSelectServer(fromPosition: Int, toPosition: Int) {
-        notifyItemChanged(fromPosition)
-        notifyItemChanged(toPosition)
-    }
-
     private fun Int.dpToPx(context: android.content.Context): Int {
         return (this * context.resources.displayMetrics.density).toInt()
     }
@@ -360,6 +337,8 @@ class MainRecyclerAdapter(
             BaseViewHolder(itemFooterBinding.root)
 
     override fun onItemMove(fromPosition: Int, toPosition: Int): Boolean {
+        // ViewModel swaps both serverList and _serversCache, then publishSnapshot triggers setData.
+        // We optimistically swap local data + animate immediately for smooth drag UX.
         mainViewModel.swapServer(fromPosition, toPosition)
         if (fromPosition < data.size && toPosition < data.size) {
             Collections.swap(data, fromPosition, toPosition)

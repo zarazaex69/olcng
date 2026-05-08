@@ -33,6 +33,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Collections
@@ -45,9 +48,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /** ISO codes to EXCLUDE (empty = show all) */
     var countryFilter: Set<String> = MmkvManager.getCountryFilter()
         private set
-    val serversCache = mutableListOf<ServersCache>()
+
+    // Internal mutable cache — never exposed directly
+    private val _serversCache = mutableListOf<ServersCache>()
+    // Read-only snapshot for external consumers that need direct access (e.g. export, ping)
+    val serversCache: List<ServersCache> get() = _serversCache.toList()
+
+    // Single source of truth for the list UI — emits a new immutable snapshot on every change
+    private val _serverListFlow = MutableStateFlow<List<ServersCache>>(emptyList())
+    val serverListFlow: StateFlow<List<ServersCache>> = _serverListFlow.asStateFlow()
+
     val isRunning by lazy { MutableLiveData<Boolean>() }
-    val updateListAction by lazy { MutableLiveData<Int>() }
     val updateTestResultAction by lazy { MutableLiveData<String>() }
     val liteTestFinished = MutableLiveData<Boolean>()
     val isTesting by lazy { MutableLiveData<Boolean>().also { it.value = false } }
@@ -123,7 +134,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         if (!suppressPinSelected) pinSelectedGuidToTop(serverList)
         updateCache()
-        updateListAction.value = -1
     }
 
     /**
@@ -133,10 +143,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun removeServer(guid: String) {
         serverList.remove(guid)
         MmkvManager.removeServer(guid)
-        val index = getPosition(guid)
+        val index = _serversCache.indexOfFirst { it.guid == guid }
         if (index >= 0) {
-            serversCache.removeAt(index)
+            _serversCache.removeAt(index)
         }
+        publishSnapshot()
     }
 
     /**
@@ -150,17 +161,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         Collections.swap(serverList, fromPosition, toPosition)
-        Collections.swap(serversCache, fromPosition, toPosition)
+        Collections.swap(_serversCache, fromPosition, toPosition)
+        publishSnapshot()
 
         MmkvManager.encodeServerList(serverList, subscriptionId)
     }
 
     /**
-     * Updates the cache of servers.
+     * Rebuilds _serversCache from serverList and publishes a new snapshot to serverListFlow.
      */
     @Synchronized
     fun updateCache() {
-        serversCache.clear()
+        _serversCache.clear()
         val kw = keywordFilter.trim()
         val searchRegex = try {
             if (kw.isNotEmpty()) Regex(kw, setOf(RegexOption.IGNORE_CASE)) else null
@@ -168,10 +180,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             null
         }
         val activeCountryFilter = countryFilter
+        val selectedGuid = MmkvManager.getSelectServer().orEmpty()
         for (guid in serverList) {
             val profile = MmkvManager.decodeServerConfig(guid) ?: continue
 
-            // Country filter — skip servers whose country is in the excluded set
             if (activeCountryFilter.isNotEmpty()) {
                 val code = CountryDetector.getCountryCode(profile.remarks, profile.server)
                 if (code in activeCountryFilter) continue
@@ -180,7 +192,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val delay = MmkvManager.decodeServerAffiliationInfo(guid)?.testDelayMillis ?: 0L
 
             if (kw.isEmpty()) {
-                serversCache.add(ServersCache(guid, profile, delay))
+                _serversCache.add(ServersCache(guid, profile, delay, guid == selectedGuid))
                 continue
             }
 
@@ -193,9 +205,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 || server.matchesPattern(searchRegex, kw)
                 || protocol.matchesPattern(searchRegex, kw)
             ) {
-                serversCache.add(ServersCache(guid, profile, delay))
+                _serversCache.add(ServersCache(guid, profile, delay, guid == selectedGuid))
             }
         }
+        publishSnapshot()
+    }
+
+    /** Emits an immutable copy of _serversCache to the Flow. Must be called on Main or from @Synchronized blocks. */
+    private fun publishSnapshot() {
+        _serverListFlow.value = _serversCache.toList()
     }
 
     /** Builds a snapshot of ServersCache for the given subId without changing global state. */
@@ -305,9 +323,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun exportAllServer(): Int {
         val serverListCopy =
             if (subscriptionId.isEmpty() && keywordFilter.isEmpty()) {
-                serverList
+                serverList.toList()
             } else {
-                serversCache.map { it.guid }.toList()
+                _serversCache.map { it.guid }
             }
 
         val ret = AngConfigManager.shareNonCustomConfigsToClipboard(
@@ -323,9 +341,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun testAllTcping() {
         tcpingTestScope.coroutineContext[Job]?.cancelChildren()
         SpeedtestManager.closeAllTcpSockets()
-        MmkvManager.clearAllTestDelayResults(serversCache.map { it.guid }.toList())
+        MmkvManager.clearAllTestDelayResults(_serversCache.map { it.guid })
 
-        val serversCopy = serversCache.toList()
+        val serversCopy = _serversCache.toList()
         for (item in serversCopy) {
             item.profile.let { outbound ->
                 val serverAddress = outbound.server
@@ -335,7 +353,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         val testResult = SpeedtestManager.tcping(serverAddress, serverPort.toInt())
                         launch(Dispatchers.Main) {
                             MmkvManager.encodeServerTestDelayMillis(item.guid, testResult)
-                            updateListAction.value = getPosition(item.guid)
+                            refreshPingInCache(listOf(item.guid))
                         }
                     }
                 }
@@ -370,18 +388,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (removed > 0) {
                     reloadServerList()
                 }
-                // Сбрасываем пинги только если не идёт lite-тест (там пинги уже актуальны)
                 if (!suppressPinSelected) {
-                    MmkvManager.clearAllTestDelayResults(serversCache.map { it.guid }.toList())
+                    MmkvManager.clearAllTestDelayResults(_serversCache.map { it.guid })
                 }
-                updateListAction.value = -1
+                publishSnapshot()
                 isTesting.value = true
 
                 viewModelScope.launch(Dispatchers.Default) {
-                    if (serversCache.isEmpty()) {
+                    if (_serversCache.isEmpty()) {
                         withContext(Dispatchers.Main) { reloadServerList() }
                     }
-                    if (serversCache.isEmpty()) {
+                    if (_serversCache.isEmpty()) {
                         withContext(Dispatchers.Main) { isTesting.value = false }
                         return@launch
                     }
@@ -394,7 +411,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             key = AppConfig.MSG_MEASURE_CONFIG,
                             subscriptionId = actualSubId,
                             serverGuids = if (keywordFilter.isNotEmpty() || subscriptionId.startsWith("group_")) {
-                                serversCache.map { it.guid }
+                                _serversCache.map { it.guid }
                             } else {
                                 emptyList()
                             }
@@ -506,9 +523,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      * @return The position of the server.
      */
     fun getPosition(guid: String): Int {
-        serversCache.forEachIndexed { index, it ->
-            if (it.guid == guid)
-                return index
+        _serversCache.forEachIndexed { index, it ->
+            if (it.guid == guid) return index
         }
         return -1
     }
@@ -518,7 +534,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      * @return The number of removed servers.
      */
     fun removeDuplicateServer(): Int {
-        val serversCacheCopy = serversCache.toList().toMutableList()
+        val serversCacheCopy = _serversCache.toList()
         val deleteServer = mutableListOf<String>()
         serversCacheCopy.forEachIndexed { index, sc ->
             val profile = sc.profile
@@ -545,9 +561,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun removeDuplicateByIp(): Int {
         val selectedGuid = MmkvManager.getSelectServer()
-        // Group all currently visible servers by their IP address
         val byIp = LinkedHashMap<String, MutableList<ServersCache>>()
-        for (sc in serversCache) {
+        for (sc in _serversCache) {
             val ip = sc.profile.server?.trim()?.lowercase() ?: continue
             byIp.getOrPut(ip) { mutableListOf() }.add(sc)
         }
@@ -644,11 +659,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (subscriptionId.isEmpty() && keywordFilter.isEmpty()) {
                 MmkvManager.removeAllServer()
             } else {
-                val serversCopy = serversCache.toList()
+                val serversCopy = _serversCache.toList()
                 for (item in serversCopy) {
                     MmkvManager.removeServer(item.guid)
                 }
-                serversCache.toList().count()
+                serversCopy.count()
             }
         return count
     }
@@ -663,39 +678,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     @Synchronized
     fun refreshPingInCache(guids: List<String>) {
         val guidSet = guids.toHashSet()
-        for (i in serversCache.indices) {
-            val item = serversCache[i]
+        for (i in _serversCache.indices) {
+            val item = _serversCache[i]
             if (item.guid in guidSet) {
                 val delay = MmkvManager.decodeServerAffiliationInfo(item.guid)?.testDelayMillis ?: 0L
                 if (item.testDelayMillis != delay) {
-                    serversCache[i] = item.copy(testDelayMillis = delay)
+                    _serversCache[i] = item.copy(testDelayMillis = delay)
                 }
             }
         }
+        publishSnapshot()
     }
 
     @Synchronized
     fun sortServersCacheInPlace() {
-        // Refresh testDelayMillis from storage so DiffUtil sees the change
-        for (i in serversCache.indices) {
-            val item = serversCache[i]
+        for (i in _serversCache.indices) {
+            val item = _serversCache[i]
             val delay = MmkvManager.decodeServerAffiliationInfo(item.guid)?.testDelayMillis ?: 0L
             if (item.testDelayMillis != delay) {
-                serversCache[i] = item.copy(testDelayMillis = delay)
+                _serversCache[i] = item.copy(testDelayMillis = delay)
             }
         }
-        serversCache.sortWith(compareBy(
+        _serversCache.sortWith(compareBy(
             { !it.profile.isFavorite },
             {
                 val delay = it.testDelayMillis
                 when {
                     delay > 0L -> delay
-                    delay == 0L -> Long.MAX_VALUE - 1  // untested
-                    else -> Long.MAX_VALUE              // failed
+                    delay == 0L -> Long.MAX_VALUE - 1
+                    else -> Long.MAX_VALUE
                 }
             }
         ))
-        if (!suppressPinSelected) pinSelectedCacheItemToTop(serversCache)
+        if (!suppressPinSelected) pinSelectedCacheItemToTop(_serversCache)
+        publishSnapshot()
     }
 
     fun sortByTestResults() {
@@ -852,7 +868,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             withContext(Dispatchers.Main) {
-                reloadServerList()
+                reloadServerList()   // rebuilds _serversCache + publishSnapshot
                 isTesting.value = false
                 liteTestFinished.value = true
                 liteTestFinished.value = false
@@ -892,7 +908,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     MmkvManager.encodeServerTestDelayMillis(resultPair.first, resultPair.second)
                     refreshPingInCache(listOf(resultPair.first))
                     if (!suppressPinSelected) sortServersCacheInPlace()
-                    updateListAction.value = -1
+                    // publishSnapshot() already called inside refresh/sort above
                 }
 
                 AppConfig.MSG_MEASURE_CONFIG_BATCH -> {
@@ -902,7 +918,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     refreshPingInCache(update.results.map { it.guid })
                     if (!suppressPinSelected) sortServersCacheInPlace()
-                    updateListAction.value = -1
+                    // publishSnapshot() already called inside refresh/sort above
                 }
 
                 AppConfig.MSG_MEASURE_CONFIG_NOTIFY -> {

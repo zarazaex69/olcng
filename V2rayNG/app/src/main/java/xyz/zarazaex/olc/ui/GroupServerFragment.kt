@@ -12,7 +12,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.google.android.material.snackbar.Snackbar
 import xyz.zarazaex.olc.AppConfig
 import xyz.zarazaex.olc.R
 import xyz.zarazaex.olc.contracts.MainAdapterListener
@@ -76,18 +75,21 @@ class GroupServerFragment : BaseFragment<FragmentGroupServerBinding>(),
 //        // Set the distance to trigger sync to 160dp
 //        binding.refreshLayout.setDistanceToTriggerSync((160 * resources.displayMetrics.density).toInt())
 
-        mainViewModel.updateListAction.observe(viewLifecycleOwner) { index ->
-            if (mainViewModel.subscriptionId == subId) {
-                adapter.setData(mainViewModel.serversCache, index)
-            }
-            // Неактивные фрагменты обновятся через onResume → subscriptionIdChanged
+        // Each fragment subscribes independently to the shared flow and filters its own subId.
+        // No onResume subscription switch needed — the active fragment's subId is always correct.
+        lifecycleScope.launch {
+            mainViewModel.serverListFlow.collect { list ->
+                    if (mainViewModel.subscriptionId == subId) {
+                        adapter.setData(list)
+                    }
+                }
         }
-
-        // Log.d(TAG, "GroupServerFragment onViewCreated: subId=$subId")
     }
 
     override fun onResume() {
         super.onResume()
+        // Tell ViewModel which tab is active so it can rebuild the correct list.
+        // This is the only place subscriptionId changes — no more races.
         mainViewModel.subscriptionIdChanged(subId)
     }
 
@@ -218,7 +220,7 @@ class GroupServerFragment : BaseFragment<FragmentGroupServerBinding>(),
      */
     private fun removeServerSub(guid: String, position: Int) {
         mainViewModel.removeServer(guid)
-        adapter.removeServerSub(guid, position)
+        // adapter updates automatically via serverListFlow
     }
 
     /**
@@ -230,19 +232,13 @@ class GroupServerFragment : BaseFragment<FragmentGroupServerBinding>(),
         val selected = MmkvManager.getSelectServer()
         if (guid == selected) {
             MmkvManager.setSelectServer("")
-            val position = mainViewModel.getPosition(guid)
-            adapter.setSelectServer(position, position)
-            if (mainViewModel.isRunning.value == true) {
-                ownerActivity.restartV2Ray()
-            }
         } else {
             MmkvManager.setSelectServer(guid)
-            val fromPosition = mainViewModel.getPosition(selected.orEmpty())
-            val toPosition = mainViewModel.getPosition(guid)
-            adapter.setSelectServer(fromPosition, toPosition)
-            if (mainViewModel.isRunning.value == true) {
-                ownerActivity.restartV2Ray()
-            }
+        }
+        // Republish snapshot so DiffUtil picks up the selection change in card background
+        mainViewModel.reloadServerList()
+        if (mainViewModel.isRunning.value == true) {
+            ownerActivity.restartV2Ray()
         }
     }
 
@@ -309,9 +305,7 @@ class GroupServerFragment : BaseFragment<FragmentGroupServerBinding>(),
             return
         }
 
-        // Find the position of the selected server
-        val serversCache = mainViewModel.serversCache
-        val position = serversCache.indexOfFirst { it.guid == selectedGuid }
+        val position = mainViewModel.serverListFlow.value.indexOfFirst { it.guid == selectedGuid }
         val recyclerView = binding.recyclerView
 
         if (position >= 0) {
